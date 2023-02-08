@@ -1,0 +1,10 @@
+LICENSE
+README.md
+setup.py
+AEROBOT.egg-info/PKG-INFO
+AEROBOT.egg-info/SOURCES.txt
+AEROBOT.egg-info/dependency_links.txt
+AEROBOT.egg-info/top_level.txt
+aerobot/__init__.py
+aerobot/io.py
+aerobot/lib.py
