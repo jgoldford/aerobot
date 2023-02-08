@@ -30,6 +30,7 @@ pip install pandas
 pip install tables
 pip install requests
 pip install biopython
+pip install -U scikit-learn
 pip install ipykernel
 # makes life easier when working with juptyer notebooks
 python -m ipykernel install --user --name aerobot --display-name "Python 3.8 (aerobot)"
