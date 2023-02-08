@@ -42,3 +42,11 @@ def load_training_data(feature_type="KO"):
         
     output["features"] = feature_matrix
     return output
+
+
+def load_ko2ec():
+    return pd.read_csv(asset_path + "/mappings/keggOrthogroupsToECnumbers.07Feb2023.csv",index_col=0)
+
+def load_oxygen_kos():
+    return pd.read_csv(asset_path + "/mappings/ko_groups.oxygenAssociated.07Feb2023",index_col=0)
+
