@@ -4,8 +4,6 @@ from sklearn.decomposition import PCA
 from sklearn.preprocessing import StandardScaler
 
 
-asset_path,filename = os.path.split(os.path.abspath(__file__))
-asset_path = asset_path + '/assets'
 
 # define asset path
 asset_path,filename = os.path.split(os.path.abspath(__file__))
