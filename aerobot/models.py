@@ -6,6 +6,7 @@ import joblib
 
 class LogisticClassifier:
     def __init__(self, cs=10, cv=5, random_state=42,max_iter=int(1e4)):
+
         self.classifier = LogisticRegressionCV(Cs=cs, cv=cv, random_state=random_state,max_iter=max_iter)
         self.scaler = StandardScaler()
         
@@ -30,7 +31,6 @@ class LogisticClassifier:
         X = self.scaler.transform(X)
         y_pred = self.classifier.predict(X)
         return confusion_matrix(y, y_pred)
-
 
     def save(self, filename):
         joblib.dump((self.classifier, self.scaler), filename)
