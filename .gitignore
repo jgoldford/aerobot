@@ -1,3 +1,5 @@
 **/*.pyc
 __pycache__/
 .ipynb_checkpoints/
+aerobot/assets/train/*.h5
+aerobot/assets/train/*.tar.gz
