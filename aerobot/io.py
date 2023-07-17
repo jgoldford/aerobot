@@ -41,8 +41,7 @@ def load_training_data(feature_type="KO"):
     elif feature_type == "aa_2mer":
         feature_matrix = pd.read_hdf(feature_path,key="aa_2mer")  
     elif feature_type == "aa_3mer":
-        feature_matrix = pd.read_hdf(feature_path,key="aa_3mer")  
-
+        feature_matrix = pd.read_hdf(feature_path,key="aa_3mer")
     else:
         raise Exception("please use KO (all KO counts), WGE (whole genome embedding), OGSE (oxygen gene set embedding), aa_1mer, aa_2mer, or aa_3mer")
         
