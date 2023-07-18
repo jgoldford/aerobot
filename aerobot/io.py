@@ -61,11 +61,11 @@ def load_validation_data(feature_type="KO"):
     labels = pd.read_csv(asset_path+"/validation/labels/Jablonska_Labels.07Feb2023.csv",index_col=0)
     output["labels"] = labels
     if feature_type == "KO":
-        feature_matrix = pd.read_csv(feature_path + "Jablonska_FS.KOCounts.07Feb2023.csv",index_col=0)
+        feature_matrix = pd.read_csv(feature_path + "Jablonska_FS.KOCounts.07Feb2023.csv",index_col=0).fillna(0)
     elif feature_type == "embedding.genome":
-        feature_matrix = pd.read_csv(feature_path + "Jablonska_FS.WGE.07Feb2023.csv",index_col=0)
+        feature_matrix = pd.read_csv(feature_path + "Jablonska_FS.WGE.07Feb2023.csv",index_col=0).fillna(0)
     elif feature_type == "embedding.geneset.oxygen":
-        feature_matrix = pd.read_csv(feature_path + "Jablonska_FS.OGSE.07Feb2023.csv",index_col=0)
+        feature_matrix = pd.read_csv(feature_path + "Jablonska_FS.OGSE.07Feb2023.csv",index_col=0).fillna(0)
     elif feature_type == "metadata":
         feature_matrix = pd.read_csv(feature_path + "Jablonska_FS.AF.07Feb2023.csv",index_col=0)
     elif feature_type == "aa_1mer":
@@ -76,6 +76,6 @@ def load_validation_data(feature_type="KO"):
         feature_matrix = pd.read_csv(feature_path + "Jablonska_aa_3_mer.16Jul2023.csv",index_col=0)
 
     else:
-        raise Exception("please use KO (all KO counts), WGE (whole genome embedding), or OGSE (oxygen gene set embedding)")
+        raise Exception("please use KO (all KO counts), WGE (whole genome embedding), or OGSE (oxygen gene set embedding), aa_1mer, aa_2mer, or aa_3mer")
     output["features"] = feature_matrix
     return output
