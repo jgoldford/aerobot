@@ -4,3 +4,4 @@ __pycache__/
 aerobot/assets/train/*.h5
 aerobot/assets/train/*.tar.gz
 **/.DS_Store
+aerobot/assets/validation/genomes/

@@ -2,10 +2,10 @@ import pandas as pd
 import os
 from sklearn.decomposition import PCA
 from sklearn.preprocessing import StandardScaler
-from Bio import SeqIO
+from Bio import Entrez, SeqIO
 from collections import defaultdict
 import gzip
-
+import time
 
 
 # define asset path
@@ -79,9 +79,10 @@ def count_aa_kmers(fasta_files, k):
 
     return df
 
-def count_fna_kmers(fasta_files, k):
+
+def count_kmers(fasta_files, k):
     """
-    load fasta files and count kmers for nucleotide sequences
+    load fasta files and count kmers for nucleotide or amino acid sequences
     :param fasta_files: list of fasta files
     :param k: kmer length
     """
@@ -93,8 +94,14 @@ def count_fna_kmers(fasta_files, k):
         # Initialize a default dictionary to store kmer counts
         kmer_counts = defaultdict(int)
 
-        # Open the gzipped fasta file
-        with gzip.open(fasta_file, 'rt') as handle:
+        # Check if the file has a .gz extension
+        if fasta_file.endswith(".gz"):
+            opener = gzip.open
+        else:
+            opener = open
+
+        # Open the file accordingly
+        with opener(fasta_file, 'rt') as handle:
             # Parse the fasta file and iterate through each record
             for record in SeqIO.parse(handle, "fasta"):
                 sequence = str(record.seq)
@@ -114,6 +121,7 @@ def count_fna_kmers(fasta_files, k):
 
     return df
 
+
 def run_pca(X,n_components=2,normalize=True):
 	results = {}
 	pca = PCA(n_components=n_components)
@@ -128,3 +136,33 @@ def run_pca(X,n_components=2,normalize=True):
 	results["pdf"] = pdf
 	results["pca"] = pca
 	return results
+
+
+
+def download_genomes_from_assembly(refseq_ids, output_folder="downloaded_genomes", email="your_email@example.com"):
+    Entrez.email = email
+
+    if not os.path.exists(output_folder):
+        os.makedirs(output_folder)
+
+    for refseq_id in refseq_ids:
+        # Fetch the assembly summary for the given RefSeq ID
+        handle = Entrez.esummary(db="assembly", id=refseq_id)
+        summary = Entrez.read(handle)
+        handle.close()
+
+        # Extract the nucleotide accession for the genomic sequence
+        nuccore_id = summary['DocumentSummarySet']['DocumentSummary'][0]['AssemblyAccession']
+
+        # Fetch the genomic sequence
+        handle = Entrez.efetch(db="nucleotide", id=nuccore_id, rettype="fasta", retmode="text")
+        filename = os.path.join(output_folder, f"{refseq_id}.fasta")
+        
+        with open(filename, 'w') as output_file:
+            output_file.write(handle.read())
+        handle.close()
+
+        print(f"Downloaded {refseq_id} to {filename}")
+        
+        time.sleep(1)  # Respectful delay
+
