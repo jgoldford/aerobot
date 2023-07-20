@@ -45,7 +45,7 @@ download_training_data()
 ```
 
 ## Loading training data
-I curated four types of training data: 1. KO counts, 2. The mean embedding for all proteins in the genome (WGE), 3. the mean embedding for all oxygen associated proteins in the genome (OGSE), and (4) kmer counts for either amino acids or genomes. To load a feature set ready for ML work, using the following function
+I curated four types of training data: 1. KO counts, 2. The mean embedding for all proteins in the genome (WGE), 3. the mean embedding for all oxygen associated proteins in the genome (OGSE), and (4) kmer counts for either amino acids or genomes (aa_1mer, aa_2mer, nt_1mer and so on). To load a feature set ready for ML work, using the following function
 
 ```python
 from aerobot.io import load_training_data

@@ -7,7 +7,6 @@ from collections import defaultdict
 import gzip
 import time
 
-
 # define asset path
 asset_path,filename = os.path.split(os.path.abspath(__file__))
 asset_path = asset_path + '/assets'
