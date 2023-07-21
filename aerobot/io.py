@@ -81,7 +81,7 @@ def load_validation_data(feature_type="KO"):
     elif feature_type == "embedding.geneset.oxygen":
         feature_matrix = pd.read_csv(feature_path + "Jablonska_FS.OGSE.07Feb2023.csv",index_col=0).fillna(0)
     elif feature_type == "metadata":
-        feature_matrix = pd.read_csv(feature_path + "Jablonska_FS.AF.07Feb2023.csv",index_col=0)
+        feature_matrix = pd.read_csv(feature_path + "Jablonska_FS.AF.07Feb2023.csv",index_col=0).set_index("genome")
     elif feature_type == "aa_1mer":
         feature_matrix = pd.read_csv(feature_path + "Jablonska_aa_1_mer.16Jul2023.csv",index_col=0)
     elif feature_type == "aa_2mer":
