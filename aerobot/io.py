@@ -95,15 +95,21 @@ def load_validation_data(feature_type="KO"):
         'nt_4mer': "Jablonska.nucletoide_4mers.19Jul2023.csv",
         'nt_5mer': "Jablonska.nucletoide_5mers.19Jul2023.csv"
     }
+    fill_na = set("KO,embedding.genome,embedding.geneset.oxygen".split(","))
 
     feature_matrix = None
     err_string = "please use KO (all KO counts), WGE (whole genome embedding), OGSE (oxygen gene set embedding), aa_1mer, aa_2mer, or aa_3mer, nt_1mer, nt_2mer, nt_3mer, nt_4mer, or nt_5mer"
     assert feature_type in feature_fname_dict, err_string
     fname = feature_fname_dict[feature_type]
     fpath = path.join(feature_path, fname)
-    feature_matrix = pd.read_csv(fpath, index_col=0).fillna(0)
 
+    feature_matrix = pd.read_csv(fpath, index_col=0)
+    if feature_type in fill_na:
+        feature_matrix.fillna(0, inplace=True)
+    if feature_type == 'metadata':
+        feature_matrix.set_index("genome", inplace=True)
     if feature_type.startswith("nt_"):
+        # remove text after the "." character in the index
         feature_matrix.index = [x.split(".")[0] for x in feature_matrix.index.tolist()]
     output["features"] = feature_matrix
     return output
