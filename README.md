@@ -26,10 +26,7 @@ git clone https://github.com/jgoldford/aerobot.git
 cd aerobot
 pip install -e .
 # install other packages
-pip install pandas
-pip install tables
-pip install requests
-pip install biopython
+pip install pandas tables requests wget biopython
 pip install -U scikit-learn
 pip install ipykernel
 # makes life easier when working with juptyer notebooks
