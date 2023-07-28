@@ -7,10 +7,6 @@ from collections import defaultdict
 import gzip
 import time
 
-# define asset path
-asset_path,filename = os.path.split(os.path.abspath(__file__))
-asset_path = asset_path + '/assets'
-
 
 def process_data(df_train_features, df_train_labels, df_test_features, df_test_labels):
     # Merge feature and label dataframes based on index
