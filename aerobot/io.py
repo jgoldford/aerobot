@@ -51,8 +51,13 @@ def load_training_data(feature_type="KO"):
         "nt_3mer": "nt_3mer",
         "nt_4mer": "nt_4mer",
         "nt_5mer": "nt_5mer",
+        "cds_1mer": "cds_1mer",
+        "cds_2mer": "cds_2mer",
+        "cds_3mer": "cds_3mer",
+        "cds_4mer": "cds_4mer",
+        "cds_5mer": "cds_5mer"
     }
-    err_msg = "please use KO (all KO counts), WGE (whole genome embedding), OGSE (oxygen gene set embedding), aa_1mer, aa_2mer, or aa_3mer, nt_1mer, nt_2mer, nt_3mer, nt_4mer, or nt_5mer"
+    err_msg = "please use KO (all KO counts), WGE (whole genome embedding), OGSE (oxygen gene set embedding), aa_1mer, aa_2mer, or aa_3mer, nt_1mer, nt_2mer, nt_3mer, nt_4mer, or nt_5mer, or cds-1-5 mer"
     assert feature_type in key_dict, err_msg
     key = key_dict[feature_type]
     feature_matrix = pd.read_hdf(feature_path,key=key)
@@ -93,7 +98,12 @@ def load_validation_data(feature_type="KO"):
         'nt_2mer': "Jablonska.nucletoide_2mers.19Jul2023.csv",
         'nt_3mer': "Jablonska.nucletoide_3mers.19Jul2023.csv",
         'nt_4mer': "Jablonska.nucletoide_4mers.19Jul2023.csv",
-        'nt_5mer': "Jablonska.nucletoide_5mers.19Jul2023.csv"
+        'nt_5mer': "Jablonska.nucletoide_5mers.19Jul2023.csv",
+        'cds_1mer': "Jablonska_cds_1mer_features.csv",
+        'cds_2mer': "Jablonska_cds_2mer_features.csv",
+        'cds_3mer': "Jablonska_cds_3mer_features.csv",
+        'cds_4mer': "Jablonska_cds_4mer_features.csv",
+        'cds_5mer': "Jablonska_cds_5mer_features.csv"
     }
     fill_na = set("KO,embedding.genome,embedding.geneset.oxygen".split(","))
 
