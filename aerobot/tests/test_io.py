@@ -8,7 +8,7 @@ from parameterized import parameterized
 class IOTests(unittest.TestCase):
     """Unit tests for the training and validation data representations.
     
-    Checks that these data are internally consistent in their layout. 
+    Checks that these data are internally consistent in their layout and ids. 
     """
     def _check_data(self, feature_name, data_type, data_dict):
         features = data_dict['features']
