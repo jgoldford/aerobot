@@ -22,6 +22,9 @@ class IOTests(unittest.TestCase):
         # Should have some data post-merge, i.e. index formats match
         self.assertGreaterEqual(merged.shape[0], 0, desc)
 
+        # Always have more labels than features due to how the dataset is constructed.
+        self.assertGreaterEqual(labels.index.size, features.index.size)
+        
     def _training_feature_test(self, feature_name):
         training_data = load_training_data(feature_name)
         self._check_data(feature_name, 'training', training_data)
