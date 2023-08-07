@@ -41,5 +41,14 @@ class IOTests(unittest.TestCase):
     def test_validation_feature(self, feature_name):
         self._validation_feature_test(feature_name)
 
+    def _train_validation_feature_test(self, feature_name):
+        training_data = load_training_data(feature_name)
+        validation_data = load_validation_data(feature_name)
+        train_data, test_data = train_data.align(test_data, axis=1, join='inner')
+
+    @parameterized.expand(FEATURE_TYPES)
+    def test_train_validation_features(self, feature_name):
+        self._train_validation_feature_test(feature_name)
+
 if __name__ == '__main__':
     unittest.main()
