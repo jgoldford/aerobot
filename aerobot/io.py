@@ -10,6 +10,12 @@ _cwd, _ = path.split(path.abspath(__file__))
 ASSET_PATH = path.join(_cwd, 'assets')
 
 
+FEATURE_TYPES = ['KO', 'embedding.genome', 'embedding.geneset.oxygen', 'metadata', 
+                 'aa_1mer', 'aa_2mer', 'aa_3mer', 'nt_1mer', 'nt_2mer', 'nt_3mer',
+                 'nt_4mer', 'nt_5mer', 'cds_1mer', 'cds_2mer', 'cds_3mer', 'cds_4mer',
+                 'cds_5mer']
+
+
 def download_training_data():
     # donwload the training data from google cloud
 
