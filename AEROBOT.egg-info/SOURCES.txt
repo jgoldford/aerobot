@@ -7,4 +7,6 @@ AEROBOT.egg-info/dependency_links.txt
 AEROBOT.egg-info/top_level.txt
 aerobot/__init__.py
 aerobot/io.py
-aerobot/lib.py
+aerobot/kegg.py
+aerobot/models.py
+aerobot/utls.py

@@ -56,7 +56,7 @@ def calc_gc(nt1_features_df):
     return gc
 
 
-AA_NOSC_DF = pd.read_csv('aa_nosc.csv', index_col=0)
+AA_NOSC_DF = pd.read_csv(ASSET_PATH + '/aa_nosc.csv', index_col=0)
 AA_NC = AA_NOSC_DF.NC
 AA_ZC = AA_NOSC_DF.NOSC
 CANONICAL_AAS = AA_NOSC_DF.index.tolist()
@@ -93,7 +93,7 @@ def calc_aa_features(aa1_features_df):
     return pd.concat(cols, axis=1)
 
 
-NT_NOSC_DF = pd.read_csv('nt_nosc.csv')
+NT_NOSC_DF = pd.read_csv(ASSET_PATH + '/nt_nosc.csv')
 RNA_NOSC_DF = NT_NOSC_DF[NT_NOSC_DF.type == 'RNA']
 RNA_NOSC_DF = RNA_NOSC_DF.set_index('letter_code')
 RNA_NC = RNA_NOSC_DF.NC
