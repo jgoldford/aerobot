@@ -12,6 +12,9 @@ import seaborn as sns
 import altair as alt
 import bokeh.io
 
+AX_FACECOLOR = '#E3DCD0'
+
+
 # Style and useful function definitions.
 def titlebox(
     ax, text, color, bgcolor=None, size=8, boxsize=0.1, pad=0.05, loc=10, **kwargs
@@ -263,7 +266,9 @@ def plotting_style(grid=False):
     """
     Sets the style to the publication style
     """
-    rc = {'axes.facecolor': '#E3DCD0',
+    rc = {
+          #'axes.facecolor': '#FFFFFF',
+          #'axes.facecolor': '#E3DCD0',
           'font.family': 'sans-serif',
           'font.sans-serif': ['Myriad Pro', 'Roboto', 'Tahoma', 'DejaVu Sans',
                               'Lucida Grande', 'Verdana'],
@@ -276,8 +281,8 @@ def plotting_style(grid=False):
           'xtick.direction': 'in',
           'xtick.gridOn': grid,
           'ytick.gridOn': grid,
-          'ytick.major.width':5,
-          'xtick.major.width':5,
+          'ytick.major.width': 5,
+          'xtick.major.width': 5,
           'ytick.major.size': 5,
           'xtick.major.size': 5,
           'mathtext.fontset': 'stixsans',
@@ -290,6 +295,7 @@ def plotting_style(grid=False):
            'ytick.color': 'k'}
     plt.rc('text.latex', preamble=r'\usepackage{sfmath}')
     plt.rc('mathtext', fontset='stixsans', sf='sans')
-    sns.set_style('darkgrid', rc=rc)
+    sns.set_style('ticks', rc=rc)
+    #sns.set_style('darkgrid', rc=rc)
     return color_palette()
 
