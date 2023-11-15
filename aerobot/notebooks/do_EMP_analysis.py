@@ -105,10 +105,12 @@ renaming_habitat = {
     'Active sludge': 'Activated sludge',
     'granular sludge': 'Granular sludge',
     'Anaerobic biogas reactor': 'Biogas fermentation',
+    'Biogas fermentantion': 'Biogas fermentation',
 }
 
 # Make a processed habitat column that is more uniform
 EMP_merged['habitat_processed'] = EMP_merged['habitat'].str.strip().replace(renaming_habitat)
+
 print('Full dataset has', EMP_merged.shape[0], 'MAGs')
 EMP_merged.to_csv('../../results/EMP_merged_raw.csv')
 
