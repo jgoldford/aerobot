@@ -27,8 +27,8 @@ def write_csv(output, df):
         df.to_csv(sys.stdout, index=False)
 
 def main():
-    parser = argparse.ArgumentParser(description="Process a file or directory of files.")
-    parser.add_argument("input", help="File or directory to process")
+    parser = argparse.ArgumentParser(description="Aerobot to predict oxygen requirement pheonotypes directly from genomic data.")
+    parser.add_argument("input", help="Single fasta file per genome containing amino acid sequences. Input can be a file or a directory, either with .fa or .fa.gz extensions.")
     parser.add_argument("-o", "--output", help="Output CSV file name (optional)")
 
     args = parser.parse_args()
