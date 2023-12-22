@@ -34,12 +34,11 @@ def main():
     args = parser.parse_args()
 
     if os.path.isfile(args.input):
-        input_files = args.input
+        input_files = [args.input]
     elif os.path.isdir(args.input):
         input_files = process_directory(args.input)
     else:
         raise ValueError("The input is neither a file nor a directory")
-
     # load the model and vocab
     classifier = GeneralClassifier(model_class=LogisticRegression)
     classifier = classifier.load(filename=f"{ASSET_PATH}/trained_models/aa3mer/model.bin")
@@ -56,7 +55,7 @@ def main():
     # parse and save results
     FileNames = [x.split("/")[-1] for x in feature_matrix]
     FilePaths = list(feature_matrix)
-    results_df = pd.DataFrame({"FileNames":FileNames,"FilePaths":FilePaths,"Oxygen_Phenotype_Predictions":predictions})
+    results_df = pd.DataFrame({"FileName":FileNames,"FilePath":FilePaths,"Oxygen_Phenotype_Prediction":predictions})
 
     # Write to CSV or stdout
     write_csv(args.output, results_df)

@@ -1,19 +1,8 @@
 # AEROBOT
-python classifier for predicting oxygen usage in prokaryotes
+Python classifier for predicting oxygen usage from bacterial and archaeal genomes.
 
-<img src="https://cdn.discordapp.com/attachments/977537752591659008/1072408230862520420/JoshG_Ukiyo-e_style_drawing_of_a_cute_microbe_wearing_a_gas_mas_d5523523-2df3-42bd-b1b3-67d18237f331.png" alt="AEROBOT" title="AEROBOT" width="600" height="400" class="center">
+<img src="logo.png" alt="AEROBOT" title="AEROBOT" width="400" height="400" class="center">
 
-## Project goals and to-dos:
-https://docs.google.com/document/d/1GFvE4NhJ0x5uTzFr89tgN11egyMZdcE1W_MYV_TU5fQ/edit
-
-1. Build annotation files for aerobe, facultative and anaerobe: DONE
-2. Annotate genomes with KEGG orthogroups (KO) for both Westoby and Jabłońska data sets: 
-3. Embed genomes using the ProtT5-XL-UniRef50 protein langauge model (ESM?): 
-4. Build ML models (Westoby train, Jabłońska test)
-
-
-## JG Notes: 07-Feb-2023
-added training data to google cloud bucket and download functions. To install, using the following code:
 
 ## Installation
 
@@ -26,23 +15,33 @@ git clone https://github.com/jgoldford/aerobot.git
 cd aerobot
 pip install -e .
 # install other packages
-pip install pandas tables requests wget biopython
-pip install -U scikit-learn
-pip install ipykernel
-# makes life easier when working with juptyer notebooks
-python -m ipykernel install --user --name aerobot --display-name "Python 3.8 (aerobot)"
+pip -r requirements.txt
 ```
 
-## Downloading training data
-The training data is >100MB,so I put everything on a google cloud bucket. Open a jupyter notebook and using the following code block to download data
+## Running the CLI
+
+If you'd like to use the tool immediately and have either a file (`*.fa` or `*.fa.gz`) or a directory containing these files.  Note that each file should be a collection of amino acid sequences from a single genome, as the script will predict a single phenotype per file.  You can either specific an output directory with the `-o` flag or let the script write the `stdout`.  To get started, we have an example fasta file for *E. coli* MG1655 in the following directory `aerobot/assets/example_data`.  Here is how you would run the script on this example file:
+
+```sh
+python aerobot.py aerobot/assets/example_data/eco.fa > ecoli_predictions.csv
+```
+
+If run correctly, the output file should contain the file name, the full path for the file, and a prediction of oxygen phsiology (`Aerobe`, `Anaerobe`, or `Facultative`).  For *E. coli* MG1655, the result should be `Facultative`.  
+
+## Code for re-building the models
+The following sections walk though the process of downloading and processing training and validation datasets, as well as performing training and running evaluation.
+
+
+### Downloading training data
+The training data is >100MB, so we put everything on a google cloud bucket. In a jupyter notebook, use the following code block to download data
 
 ```python
 from aerobot.io import download_training_data
 download_training_data()
 ```
 
-## Loading training data
-I curated four types of training data: 1. KO counts, 2. The mean embedding for all proteins in the genome (WGE), 3. the mean embedding for all oxygen associated proteins in the genome (OGSE), and (4) kmer counts for either amino acids or genomes (aa_1mer, aa_2mer, nt_1mer and so on). To load a feature set ready for ML work, using the following function
+### Loading training data
+We curated four types of training data: 1. KO counts, 2. The mean embedding for all proteins in the genome (WGE), 3. the mean embedding for all oxygen associated proteins in the genome (OGSE), and (4) kmer counts for either amino acids or genomes (aa_1mer, aa_2mer, nt_1mer and so on). To load a feature set ready for ML work, use the following function
 
 ```python
 from aerobot.io import load_training_data
@@ -51,17 +50,17 @@ training_data["features"] # genome x feature dataframe
 training_data["labels"] # dataframe with metadata/phenotypes for each genome
 ```
 
-I also wrote a simple function to process the training data into numpy arrays for ML work:
+ Process the training data into numpy arrays for ML work:
 
 ```python
 from aerobot.utls import process_data
 cleaned_data = process_data(training_data["features"], training_data["labels"]["physiology"], validation_data["features"], validation_data["labels"]["physiology"])
 ```
 
-this function just makes sure all the feature columns overlap and match for both training and validation sets
+This function just makes sure all the feature columns overlap and match for both training and validation sets.
 
-## Model training and validation
-I wrote a simple class instance to handle data normalization and classification pipelines.  We can also save and load pretrained models for downstream applications.  Below is the code you would use to train a logistic classifier model, and evaluate on the test set.
+### Model training and validation
+We wrote a simple class instance to handle data normalization and classification pipelines.  You can also save and load pretrained models for downstream applications.  Below is the code you would use to train a logistic classifier model, and evaluate on the test set.
 
 ```python
 from aerobot.models import LogisticClassifier
@@ -84,17 +83,17 @@ print("Test Accuracy: " + str(test_accuracy))
 print("Test Balanced Accuracy: " + str(test_balanced_accuracy))
 ```
 
-## Model saving and loading for future use
-Now that you've trained the model, ya gotta save it! Here is how you would save and load models for later use
+### Model saving and loading for future use
+Now that you've trained the model, save it. Here is how you would save and load models for later use
 ```python
-model.save("logistic.Classifier.EmbeddingFeatures.joblib")
+model.save("model.bin")
 
 # load model into a new object
-new_model = LogisticClassifier.load("logistic.Classifier.EmbeddingFeatures.joblib")
+new_model = LogisticClassifier.load("model.bin"")
 ```
 
 ## Some more analysis
-Suppose you want to look at which classes the model was good or bad at classifying. You'd want to analyze the full confusion matrix.  This is weird name, since you'll likely be less confused after looking at it. Here is how you'd compute this quickly using this package:
+Suppose you want to look at which classes the model was good or bad at classifying. You'd want to analyze the full confusion matrix.  Here is how you'd compute this quickly using this package:
 
 ```python
 C = model.confusion_matrix(cleaned_data["X_train"], cleaned_data["y_train"])
