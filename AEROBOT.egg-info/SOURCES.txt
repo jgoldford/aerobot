@@ -9,4 +9,7 @@ aerobot/__init__.py
 aerobot/io.py
 aerobot/kegg.py
 aerobot/models.py
-aerobot/utls.py
+aerobot/utils.py
+aerobot/tests/__init__.py
+aerobot/tests/test_io.py
+aerobot/tests/tests.py

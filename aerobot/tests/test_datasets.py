@@ -28,7 +28,7 @@ class DatasetTests(unittest.TestCase):
     def test_correct_type_in_numpy_arrays(self, feature_type:str):
         # Making sure that the index or column values don't end up in the data used to train models. 
         # I doubt this is happening, but just want to confirm. 
-
+  
         # Load in the training and testing datasets as numpy arrays.
         training_dataset, validation_dataset = load_datasets(feature_type, to_numpy=True)
         # Make sure everything is actually a numpy array of floats (or strings, in the case of labels).
