@@ -94,7 +94,7 @@ def load_validation_data(path:str=os.path.join(ASSET_PATH, 'validation/features/
     return output
 
 
-def download_raw_training_data(dir_path:str=os.path.join(ASSET_PATH, 'train/')) -> NoReturn:
+def download_data(dir_path:str=os.path.join(ASSET_PATH, 'train/')) -> NoReturn:
     '''Download the training data from Google Cloud.
     
     :param dir_path: The directory into which the training data will be downloaded.
@@ -209,13 +209,13 @@ def fill_missing_taxonomy(labels:pd.DataFrame) -> pd.DataFrame:
 
 if __name__ == '__main__':
 
-    download_raw_training_data() # Download training data from Google Cloud if it has not been already.
+    download_data() # Download training data from Google Cloud if it has not been already.
 
     all_datasets = dict()
     for feature_type in  FEATURE_TYPES:
         print(f'Building datasets for {feature_type}...')
-        training_data = load_raw_training_data(feature_type=feature_type)
-        validation_data = load_raw_validation_data(feature_type=feature_type)
+        training_data = load_training_data(feature_type=feature_type)
+        validation_data = load_validation_data(feature_type=feature_type)
 
         training_features, training_labels = training_data['features'], training_data['labels']
         validation_features, validation_labels = validation_data['features'], validation_data['labels']
