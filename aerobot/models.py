@@ -8,6 +8,11 @@ from sklearn.metrics import confusion_matrix, balanced_accuracy_score
 from tqdm import tqdm
 from typing import Tuple, NoReturn, List, Dict
 
+# Use a GPU if one is available. 
+if torch.cuda.is_available():
+    device = torch.device('cuda')
+else:
+    device = torch.device('cpu')
 
 class Nonlinear(torch.nn.Module):
     '''Two-layer neural network for classification.'''
@@ -31,7 +36,7 @@ class Nonlinear(torch.nn.Module):
         self.classifier = torch.nn.Sequential(
             torch.nn.Linear(input_dim, hidden_dim),
             torch.nn.ReLU(),
-            torch.nn.Linear(hidden_dim, self.n_classes))
+            torch.nn.Linear(hidden_dim, self.n_classes)).to(device)
 
         self.optimizer = torch.optim.Adam(self.classifier.parameters(), lr=lr, weight_decay=weight_decay)
 
@@ -57,7 +62,7 @@ class Nonlinear(torch.nn.Module):
 
     def forward(self, X:np.ndarray) -> torch.FloatTensor:
         '''A forward pass of the model.'''
-        X = torch.FloatTensor(X) # Convert numpy array to Tensor. 
+        X = torch.FloatTensor(X).to(device) # Convert numpy array to Tensor. Make sure it is on the GPU, if available.
         return self.classifier(X)
 
     def _early_stop(self, t:int):
@@ -110,7 +115,7 @@ class Nonlinear(torch.nn.Module):
             X_batches, y_batches = self._get_batches(X, y_enc) 
             for X_batch, y_batch in zip(X_batches, y_batches):
                 y_pred = self(X_batch)
-                train_loss = self.loss_func(y_pred, torch.FloatTensor(y_batch), weight=self.weight)
+                train_loss = self.loss_func(y_pred, torch.FloatTensor(y_batch).to(device), weight=self.weight)
                 self.optimizer.zero_grad()
                 train_loss.backward()
                 self.optimizer.step()
