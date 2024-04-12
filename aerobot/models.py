@@ -11,7 +11,7 @@ from typing import Tuple, NoReturn, List, Dict
 
 class Nonlinear(torch.nn.Module):
     '''Two-layer neural network for classification.'''
-    def __init__(self, input_dim:int, weight_decay:float=0.01, hidden_dim:int=512, lr:float=0.0001, n_epochs:int=50, batch_size:int=16, alpha:int=10, early_stopping:bool=True):
+    def __init__(self, input_dim:int=None, weight_decay:float=0.01, hidden_dim:int=512, lr:float=0.0001, n_epochs:int=50, batch_size:int=16, alpha:int=10, early_stopping:bool=True):
         
         torch.manual_seed(42) # Seed the RNG for reproducibility.
         super().__init__()
@@ -74,7 +74,11 @@ class Nonlinear(torch.nn.Module):
             return 100 * ((curr_val_loss / min_val_loss) - 1)
 
         return generalization_error() > self.alpha
-
+        
+    def balanced_accuracy(self, X:np.ndarray, y:np.ndarray):
+        y_pred = self.predict(X)
+        return balanced_accuracy_score(y.ravel(), y_pred.ravel())
+    
     def loss_func(self, y_pred:torch.FloatTensor, y:torch.FloatTensor, weight:torch.FloatTensor=None):
         '''Implement the loss function specified on initialization. The addition of this function wrapper allows weights
         to be easily discarded if mean-squared error is used.
@@ -102,7 +106,7 @@ class Nonlinear(torch.nn.Module):
 
         self.train() # Model in train mode.  
         for epoch in tqdm(range(self.n_epochs), desc='Training NonlinearClassifier...', disable=not verbose):
-            X_trans, y_trans = NonlinearClassifier.shuffle(X, y_enc) # Shuffle the transformed data. 
+            X_trans, y_trans = Nonlinear.shuffle(X, y_enc) # Shuffle the transformed data. 
             X_batches, y_batches = self._get_batches(X, y_enc) 
             for X_batch, y_batch in zip(X_batches, y_batches):
                 y_pred = self(X_batch)
@@ -163,7 +167,7 @@ class GeneralClassifier():
         else:
             self.classifier.fit(X, y)
 
-    def predict(self, X:np.ndarrray) -> np.ndarray:
+    def predict(self, X:np.ndarray) -> np.ndarray:
         X = X if (not self.scaler) else self.scaler.transform(X) # Standardize the input, if specified.
         return self.classifier.predict(X)
         
@@ -181,7 +185,7 @@ class GeneralClassifier():
         y_pred = self.classifier.predict(X)
         return confusion_matrix(y, y_pred)
 
-    def save(self, path:Str) -> NoReturn:
+    def save(self, path:str) -> NoReturn:
         '''Save the GeneralClassifier instance to a file.
 
         :param path: The location where the object will be stored.
