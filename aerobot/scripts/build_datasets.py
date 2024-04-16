@@ -2,7 +2,7 @@
 and validation sets with no repeated species across the two sets. '''
 import numpy as np
 import pandas as pd
-from aerobot.io import save_hdf, ASSET_PATH, FEATURE_TYPES
+from aerobot.io import save_hdf, ASSET_PATH, FEATURE_TYPES, FEATURE_SUBTYPES
 from aerobot.chemical import get_chemical_features
 import os
 import subprocess
@@ -14,25 +14,24 @@ import warnings
 warnings.filterwarnings('ignore', category=pd.io.pytables.PerformanceWarning)
 warnings.filterwarnings('ignore', category=tables.NaturalNameWarning)
 
+MAPS_PATH = os.path.join(os.path.split(os.path.abspath(__file__))[0], 'maps.csv')
+
+# TODO: Put the key and filename maps into a CSV file. 
+# TODO: Possibly add the code for reading and writing maps to the io.py file?
+
 
 def load_training_data(path:str=os.path.join(ASSET_PATH, 'train/training_data.h5'), feature_type:str='KO') -> Dict[str, pd.DataFrame]:
-    '''Load the training data for a specific feature from an HD5 file (specifically, the one downloaded)
+    '''Load the training data for a specific feature from an HD5 file (specifically, the one downloaded). 
 
     :param path: The path to the HD5 file containing the training data.
     :param feature_type: The feature type to load.
     :return: A dictionary containing the feature data and corresponding labels.'''
-    output = dict()
-    output['labels'] = pd.read_hdf(path, key='labels') # Extract the labels DataFrame from the HD5 file.
-    # NOTE: This block of code was causing issues with the nt_ indices.
-    # # If the feature type is from the nt class, keep only the string after the first '_' character in the labels DataFrame index.
-    # if feature_type.startswith('nt_'):
-    #     labels.index = ['_'.join(i.split('_')[1:]) for i in labels.index]
-
-    # Create a dictionary mapping each feature type to a key in the HD5 file.
-    key_map = {f:f for f in FEATURE_TYPES} # Most keys are the same as the feature type names.
-    key_map.update({'embedding.genome':'WGE', 'embedding.geneset.oxygen':'OGSE', 'metadata':'AF'})
-
     assert feature_type in FEATURE_TYPES, f'load_training_data: feature_type must be one of {FEATURE_TYPES}'
+    
+    output = dict()
+    output['labels'] = pd.read_hdf(path, key='labels')
+    # Create a map of  each feature type to a key in the HD5 file.
+    key_map = pd.read_csv(MAPS_PATH, usecols=['key', 'feature_type'], index_col='feature_type').to_dict()['key']
 
     if feature_type == 'chemical':
         metadata_df = pd.read_hdf(path, key=key_map['metadata'])
@@ -50,25 +49,74 @@ def load_training_data(path:str=os.path.join(ASSET_PATH, 'train/training_data.h5
     return output
 
 
+def merge_datasets(training_dataset:Dict[str, pd.DataFrame], validation_dataset:Dict[str, pd.DataFrame]) -> Dict[str, pd.DataFrame]:
+    '''Merge the training and validation datasets, ensuring that the duplicate entries are taken care of by standardizing
+    the index labels. Note that this function DOES NOT remove duplicate entries.
+
+    :param training_dataset: A dictionary containing the training features and labels. 
+    :param validation_dataset: A dictionary containing the validation features and labels. 
+    :return: A dictionary containing the combined validation and training datasets.  
+    '''
+    def standardize_index(dataset:Dict[str, pd.DataFrame]) -> Dict[str, pd.DataFrame]:
+        '''Standardizes the indices the labels and features DataFrames in a dataset
+        by removing the '.d' suffix, where d is a digit. This allows for comparison between datasets.
+
+        :param dataset: The dataset to operate on.
+        :return: The dataset with standardized indices.
+        '''
+        for key, data in dataset.items():
+            data.index = [i.split('.')[0] for i in data.index]
+            dataset[key] = data
+        return dataset
+
+    # Standardize the indices so that the datasets can be compared.
+    training_dataset, validation_dataset = standardize_index(training_dataset), standardize_index(validation_dataset)
+    # Unpack the features and labels dataframes from the datasets.
+    training_features, training_labels = training_dataset['features'], training_dataset['labels'].drop(columns=['annotation_file', 'embedding_file'])
+    validation_features, validation_labels = validation_dataset['features'], validation_dataset['labels'].drop(columns=['annotation_file', 'embedding_file'])
+
+    # Combine the datasets, ensuring that the features columns which do not overlap are removed (with the join='inner')
+    features = pd.concat([training_features, validation_features], axis=0, join='inner')
+    labels = pd.concat([training_labels, validation_labels], axis=0, join='outer')
+
+    return {'features':features, 'labels':labels}
+
+
+def fill_missing_taxonomy(labels:pd.DataFrame) -> pd.DataFrame:
+    '''Fill in missing taxonomy information from the GTDB taxonomy strings. This is necessary because
+    different data sources have different taxonomy information populated. Note that every entry should have
+    either a GTDB taxonomy string or filled-in taxonomy data.
+
+    :param labels: The combined training and validation labels DataFrame.
+    :return: The labels DataFrame with corrected taxonomy.
+    '''
+    # tax = labels.ncbi_taxonomy.str.split(';', expand=True)
+    tax = labels.gtdb_taxonomy.str.split(';', expand=True)
+    tax = tax.apply(lambda x: x.str.split('__').str[1])
+    tax.columns = ['Kingdom', 'Phylum', 'Class', 'Order', 'Family', 'Genus', 'Species']
+    # Use the tax DataFrame to fill in missing taxonomy values in the labels DataFrame
+    labels = labels.combine_first(tax)
+    # Make sure everything at least has a class label.
+    assert np.all(~pd.isnull(labels['Class'].values)), 'fill_missing_taxonomy: Some entries have no assigned Class.'
+    return labels
+
+
 def load_validation_data(path:str=os.path.join(ASSET_PATH, 'validation/features/'), feature_type:str='KO') -> Dict[str, pd.DataFrame]:
-    '''Load the valudation data for a specific feature.
+    '''Load the valudation data for a specific feature. Standardizes the index in the labels and features 
+    DataFrames for compatibility with the validation dataset.
 
     :param path: The path to the directory containing the validation data files.
     :param feature_type: The feature type to load.
     :return: A dictionary containing the feature data and corresponding labels.'''
+    assert feature_type in FEATURE_TYPES, f'load_validation_data: feature_type must be one of {FEATURE_TYPES}'
+    
     output = dict()
-    output['labels'] = pd.read_csv(os.path.join(ASSET_PATH, 'validation/labels/Jablonska_Labels.07Feb2023.csv'), index_col=0)
+    labels = pd.read_csv(os.path.join(ASSET_PATH, 'validation/labels/Jablonska_Labels.07Feb2023.csv'), index_col=0)
+    labels = labels.rename(columns={'Oder':'Order'}) # Fix a typo in one of the columns. 
+    output['labels'] = labels # Add the DataFrame to the output. 
 
     # Dictionary mapping each feature type to the file with the relevant data.
-    filename_map = {'KO': 'Jablonska_FS.KOCounts.07Feb2023.csv', 
-                    'embedding.genome': 'Jablonska_FS.WGE.07Feb2023.csv', 
-                    'embedding.geneset.oxygen': 'Jablonska_FS.OGSE.07Feb2023.csv',
-                    'metadata': 'Jablonska_FS.AF.07Feb2023.csv'}
-    filename_map.update({f'aa_{i}mer':f'Jablonska_aa_{i}_mer.16Jul2023.csv' for i in range(1, 4)})
-    filename_map.update({f'nt_{i}mer':f'Jablonska.nucletoide_{i}mers.19Jul2023.csv' for i in range(1, 6)})
-    filename_map.update({f'cds_{i}mer':f'Jablonska_cds_{i}mer_features.csv' for i in range(1, 6)})
-
-    assert feature_type in FEATURE_TYPES, f'load_validation_data: feature_type must be one of {FEATURE_TYPES}'
+    filename_map = pd.read_csv(MAPS_PATH, usecols=['filename', 'feature_type'], index_col='feature_type').to_dict()['filename']
 
     if feature_type == 'chemical':
         metadata_df = pd.read_csv(os.path.join(path, filename_map['metadata']), index_col=0)
@@ -119,7 +167,7 @@ def remove_duplicates(data:pd.DataFrame) -> Tuple[pd.DataFrame, np.ndarray, np.n
     then both duplicates are dropped.
 
     :param data: A DataFrame containing all data.
-    return: A 3-tuple (new_df, duplicate_ids, removed_ids), where new_df is the DataFrame
+    :return: A 3-tuple (new_df, duplicate_ids, removed_ids), where new_df is the DataFrame
         with duplicates removed, duplicate_ids are the IDs that were identical duplicates (one is retained),
         and removed_ids are the IDs that were removed entirely due to inconsistent data.
     '''
@@ -128,6 +176,8 @@ def remove_duplicates(data:pd.DataFrame) -> Tuple[pd.DataFrame, np.ndarray, np.n
 
     for id_ in duplicate_ids:
         duplicate_entries = data.loc[id_] # Get all entries in the DataFrame which match the ID.
+        # NOTE: Keeping the first entry prefers keeping the entries from the training dataset, due to how they are concatenated.
+        # This should ensure that GTDB taxonomy is preferred in the labels DataFrames.
         first_entry = duplicate_entries.iloc[0] # Get the first duplicate entry.
         # Check if the duplicate entries are consistent. If not, remove. 
         if not all(duplicate_entries == first_entry):
@@ -140,18 +190,7 @@ def remove_duplicates(data:pd.DataFrame) -> Tuple[pd.DataFrame, np.ndarray, np.n
     return data[~duplicated].copy(), duplicate_ids, ids_to_remove
 
 
-def standardize_index(data:pd.DataFrame) -> pd.DataFrame:
-    '''Normalizes the index of a DataFrame by removing the '.d'
-    suffix, where d is a digit. This allows for comparison between datasets.
-
-    :param data: The DataFrame to operate on.
-    :return: The input DataFrame with a standardized index.
-    '''
-    data.index = [i.split('.')[0] for i in data.index]
-    return data
-
-
-def train_val_split(all_datasets:Dict[str, pd.DataFrame], random_seed:int=91) -> Tuple[Dict[str, pd.DataFrame], Dict[str, pd.DataFrame]]:
+def training_validation_split(all_datasets:Dict[str, pd.DataFrame], random_seed:int=91) -> Tuple[Dict[str, pd.DataFrame], Dict[str, pd.DataFrame]]:
     '''Split concatenated feature dataset into training and validation sets using phylogeny.
     
     :param all_datasets: A dictionary mapping each feature type to the corresponding dataset.
@@ -168,9 +207,6 @@ def train_val_split(all_datasets:Dict[str, pd.DataFrame], random_seed:int=91) ->
     # ids_by_class['no rank'].extend(ids_by_class.pop(''))
 
     counts_by_class = {k: len(v) for k, v in ids_by_class.items()}
-    print('Number of IDs in each taxonomic class:')
-    for k, v in counts_by_class.items():
-        print(f'\t{k}: {v}')
 
     np.random.seed(random_seed) # For reproducibility. 
     validation_ids = []
@@ -187,75 +223,98 @@ def train_val_split(all_datasets:Dict[str, pd.DataFrame], random_seed:int=91) ->
     return training_datasets, validation_datasets
 
 
-# TODO: Should we just use GTDB taxonomy, instead of filling in existing?
-def fill_missing_taxonomy(labels:pd.DataFrame) -> pd.DataFrame:
-    '''Fill in missing taxonomy information from the GTDB (or NCBI?) taxonomy strings. This is necessary because
-    different data sources have different taxonomy information populated.
-
-    :param labels: The combined training and validation labels DataFrame.
-    :return: The labels DataFrame with corrected taxonomy.
-    '''
-    # tax = labels.ncbi_taxonomy.str.split(';', expand=True)
-    tax = labels.gtdb_taxonomy.str.split(';', expand=True)
-    tax = tax.apply(lambda x: x.str.split('__').str[1])
-    tax.columns = ['Kingdom', 'Phylum', 'Class', 'Order', 'Family', 'Genus', 'Species']
-    # Use the tax DataFrame to fill in missing taxonomy values in the labels DataFrame.
-    # labels = labels.combine_first(tax)
-    # Use all GTDB taxonomy instead of merging. 
-    for col in tax.columns:
-        labels[col] = tax[col]
-    return labels
-
 
 if __name__ == '__main__':
 
     download_data() # Download training data from Google Cloud if it has not been already.
 
     all_datasets = dict()
-    for feature_type in  FEATURE_TYPES:
+    for feature_type in FEATURE_TYPES:
         print(f'Building datasets for {feature_type}...')
-        training_data = load_training_data(feature_type=feature_type)
-        validation_data = load_validation_data(feature_type=feature_type)
+        # Load in the datasets.
+        training_dataset = load_training_data(feature_type=feature_type)
+        validation_dataset = load_validation_data(feature_type=feature_type)
 
-        training_features, training_labels = training_data['features'], training_data['labels']
-        validation_features, validation_labels = validation_data['features'], validation_data['labels']
+        print(f'\tMerging datasets...')
+        dataset = merge_datasets(training_dataset, validation_dataset)
+        features, labels = dataset['features'], dataset['labels']
 
-        # Merge training and validation data, and remove any duplicates.
-        print('\tMerging training and validation features...')
-        features = pd.concat([training_features, validation_features], axis=0)
-        features = standardize_index(features) # NOTE: I think this should be called before de-duplicating.
-        features, duplicate_ids, removed_ids = remove_duplicates(features)
-        print(f'\tFound {len(duplicate_ids)} duplicates in {feature_type} across training and validation features.')
-        print(f'\tRemoved {len(removed_ids)} inconsistent duplicates.')
+        # Fill in gaps in the taxonomy data using the GTDB taxonomy strings.
+        dataset['labels'] = fill_missing_taxonomy(dataset['labels'])
 
-        print('\tMerging training and validation labels...')
-        labels = pd.concat([training_labels, validation_labels], axis=0)
-        labels = standardize_index(labels)
-        labels, duplicate_ids, removed_ids = remove_duplicates(labels)
-        print(f'\tFound {len(duplicate_ids)} duplicates in {feature_type} across training and validation labels.')
-        print(f'\tRemoved {len(removed_ids)} inconsistent duplicates.')
+        for key, data in dataset.items(): # key is "features" or "labels"
+            data, duplicate_ids, removed_ids = remove_duplicates(data)
+            print(f'\tFound {len(duplicate_ids)} duplicates in {key} across training and validation datasets.')
+            if len(removed_ids) > 0:
+                print(f'\tRemoved {len(removed_ids)} inconsistent entries in {key}.')
+            dataset[key] = data
 
-        print(f'\tShape of merged features dataset: {features.shape}')
-        print(f'\tShape of merged labels: {labels.shape}')
-        all_datasets[feature_type] = features
-
-        labels = labels.rename(columns={'Oder': 'Order'}) # Clean up some of the column headers.
         # If there are already labels in the dictionary, check to make sure the new labels are equal.
         if 'labels' in all_datasets: # NOTE: There should be 3587 labels, 3480 with no duplicates
-            l1, l2 = len(labels), len(all_datasets['labels'])
-            assert l1 == l2, f'Labels DataFrames are expected to be the same length, found lengths {l1} and {l2}. Failed on feature type {feature_type}.'
-            assert np.all(labels.physiology.values == all_datasets['labels'].physiology.values), f'Labels are expected to be the same across datasets. Failed on feature type {feature_type}.'
-            assert np.all(labels.physiology.values == all_datasets['labels'].physiology.values), f'Labels are expected to be the same across datasets. Failed on feature type {feature_type}.'
+            l1, l2 = len(dataset['labels']), len(all_datasets['labels'])
+            assert l1 == l2, f'Labels are expected to be the same length, found lengths {l1} and {l2}. Failed on feature type {feature_type}.'
+            assert np.all(dataset['labels'].physiology.values == all_datasets['labels'].physiology.values), f'Labels are expected to be the same across datasets. Failed on feature type {feature_type}.'
         else: # Add labels to the dictionary if they aren't there already.
-            all_datasets['labels'] = labels
+            all_datasets['labels'] = dataset['labels']
+        
+        all_datasets[feature_type] = dataset['features']
 
-    all_datasets['labels'] = fill_missing_taxonomy(all_datasets['labels'])
-    training_datasets, validation_datasets = train_val_split(all_datasets)
+    training_datasets, validation_datasets = training_validation_split(all_datasets)
 
     print('Saving the datasets...')
     save_hdf(all_datasets, os.path.join(ASSET_PATH, 'updated_all_datasets.h5'))
     save_hdf(training_datasets, os.path.join(ASSET_PATH, 'updated_training_datasets.h5'))
     save_hdf(validation_datasets, os.path.join(ASSET_PATH, 'updated_validation_datasets.h5'))
+
+
+# pretty_feature_names = {
+#     'KO': 'all gene families',
+#     'embedding.genome': 'genome embedding',
+#     'metadata':None,
+#     'embedding.geneset.oxygen': '5 gene set',
+#     'metadata.number_of_genes': 'number of genes',
+#     'metadata.oxygen_genes': 'O$_2$ gene count',
+#     'metadata.pct_oxygen_genes': 'O$_2$ gene percent',
+#     'aa_1mer': 'amino acid counts',
+#     'aa_2mer': 'amino acid dimers',
+#     'aa_3mer': 'amino acid trimers',
+#     'chemical': 'chemical features',
+#     'nt_1mer': 'nucleotide counts',
+#     'nt_2mer': 'nucleotide dimers',
+#     'nt_3mer': 'nucleotide trimers',
+#     'nt_4mer': 'nucleotide 4-mers',
+#     'nt_5mer': 'nucleotide 5-mers',
+#     'cds_1mer': 'CDS nucleotide counts',
+#     'cds_2mer': 'CDS nucleotide dimers',
+#     'cds_3mer': 'CDS nucleotide trimers',
+#     'cds_4mer': 'CDS nucleotide 4-mers',
+#     'cds_5mer': 'CDS nucleotide 5-mers'}
+
+# filename_map = {'chemical':None,'KO': 'Jablonska_FS.KOCounts.07Feb2023.csv', 
+#                 'embedding.genome': 'Jablonska_FS.WGE.07Feb2023.csv', 
+#                 'embedding.geneset.oxygen': 'Jablonska_FS.OGSE.07Feb2023.csv',
+#                 'metadata': 'Jablonska_FS.AF.07Feb2023.csv'}
+# filename_map.update({f'aa_{i}mer':f'Jablonska_aa_{i}_mer.16Jul2023.csv' for i in range(1, 4)})
+# filename_map.update({f'nt_{i}mer':f'Jablonska.nucletoide_{i}mers.19Jul2023.csv' for i in range(1, 6)})
+# filename_map.update({f'cds_{i}mer':f'Jablonska_cds_{i}mer_features.csv' for i in range(1, 6)})
+
+# # Create a dictionary mapping each feature type to a key in the HD5 file.
+# key_map = {f:f for f in FEATURE_TYPES} # Most keys are the same as the feature type names.
+# key_map.update({'embedding.genome':'WGE', 'embedding.geneset.oxygen':'OGSE', 'metadata':'AF'})
+
+# df = {'feature_type':[], 'pretty_feature_name':[], 'hdf_key':[], 'filename':[]}
+# for feature_type in FEATURE_SUBTYPES + FEATURE_TYPES:
+#     df['feature_type'] += [feature_type] 
+#     if feature_type in FEATURE_SUBTYPES:
+#         df['hdf_key'] += [key_map['metadata']]
+#         df['filename'] += [filename_map['metadata']]
+#     else:
+#         df['hdf_key'] += [key_map[feature_type]]
+#         df['filename'] += [filename_map[feature_type]]
+#     df['pretty_feature_name'] += [pretty_feature_names[feature_type]]
+
+# df = pd.DataFrame(df).set_index('feature_type')
+# df.to_csv('feature_type_metadata.csv')
 
 
 

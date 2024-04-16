@@ -6,10 +6,13 @@ AEROBOT.egg-info/SOURCES.txt
 AEROBOT.egg-info/dependency_links.txt
 AEROBOT.egg-info/top_level.txt
 aerobot/__init__.py
+aerobot/chemical.py
+aerobot/dataset.py
 aerobot/io.py
 aerobot/kegg.py
 aerobot/models.py
 aerobot/utils.py
 aerobot/tests/__init__.py
-aerobot/tests/test_io.py
-aerobot/tests/tests.py
+aerobot/tests/test_chemical.py
+aerobot/tests/test_dataset.py
+aerobot/tests/test_models.py

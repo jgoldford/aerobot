@@ -211,6 +211,66 @@ class GeneralClassifier():
         return instance
 
 
+def train_logistic(X:np.ndarray, y:np.ndarray, params:Dict={'penalty':'l2', 'C':100, 'max_iter':10000}) -> GeneralClassifier:
+    '''Train a LogisticRegression-based classifier.
+
+    :param X: A numpy array containing the training features.
+    :param y: A numpy array containing the training labels.
+    :param params: A dictionary of keyword arguments to pass into the classifier initialization function.
+    :return: A trained instance of a GeneralClassifier based on logistic regression.
+    '''
+    model = GeneralClassifier(model_class=LogisticRegression, params=params) # Instantiate a classifier.
+    model.fit(X, y)
+    return model
+
+
+def train_nonlinear(X:np.ndarray, y:np.ndarray, X_val:np.ndarray, y_val:np.ndarray, params:Dict=None) -> GeneralClassifier:
+    '''Train a Nonlinear-based classifier.
+
+    :param X: A numpy array containing the training features.
+    :param y: A numpy array containing the training labels.
+    :param X_val: A numpy array containing the validation features.
+    :param y_val: A numpy array containing the validation labels. 
+    :param params: A dictionary of keyword arguments to pass into the classifier initialization function.
+    :return: A trained instance of a GeneralClassifier based on a nonlinear neural network.
+    '''
+    model = GeneralClassifier(model_class=Nonlinear, params=params) # Instantiate a classifier.
+    model.fit(X, y, X_val=X_val, y_val=y_val)
+    return model
+
+
+def evaluate(model:GeneralClassifier, X:np.ndarray, y:np.ndarray, X_val:np.ndarray, y_val:np.ndarray) -> Dict:
+    '''Evaluate a trained GeneralClassifier using the training and test data.
+
+    :param model: The trained GeneralClassifier to evaluate.
+    :param X: A numpy array containing the training features.
+    :param y: A numpy array containing the training labels.
+    :param X_val: A numpy array containing the validation features.
+    :param y_val: A numpy array containing the validation labels. 
+    :return: A dictionary containing various evaluation metrics for the trained classifier on the training
+        and validation data.
+    '''
+    results = dict()
+
+    results['training_acc'] = model.balanced_accuracy(X, y)
+    results['validation_acc'] = model.balanced_accuracy(X_val, y_val)
+    results['classes'] = model.classifier.classes_
+    results['confusion_matrix'] = model.confusion_matrix(X_val, y_val).ravel()
+
+    if isinstance(model.classifier, LogisticRegression): # Only applies if the model used LogisticRegression.
+        n_iter = model.classifier.n_iter_[0]
+        results['n_iter'] = n_iter
+        results['converged'] = n_iter < model.classifier.max_iter
+
+    if isinstance(model.classifier, Nonlinear): # If the underlying model is Nonlinear...
+        # Save some information for plotting training curves.
+        results['training_losses'] = model.classifier.train_losses
+        results['validation_losses'] = model.classifier.val_losses
+        results['training_accs'] = model.classifier.train_accs
+        results['validation_accs'] = model.classifier.val_accs
+    
+    return results
+
     # def hyperparameter_optimization(self, X, y, param_grid, cv_strategy=None):
     #     if self.scaler:
     #         X = self.scaler.fit_transform(X)
