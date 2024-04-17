@@ -52,7 +52,7 @@ def read_params(args:argparse.ArgumentParser, model_class:str='nonlinear') -> Di
 
     :param args: An ArgumentParser populated with parameters from the command-line.
     :param model_class: The type of model which the parameters will be passed into. One of 'logistic', 'nonlinear'.
-    :
+    :return
     '''
     # Determine which parameters to look for in the args, depending on the specified model class. 
     nonlinear_param_options = ['weight_decay', 'n_epochs', 'input_dim', 'hidden_dim', 'alpha', 'lr', 'batch_size', 'early_stopping', 'input_dim']
@@ -72,7 +72,7 @@ def save_results_dict(results:Dict, path:str, format:str='json') -> NoReturn:
         with open(path, 'wb') as f:
             pickle.dump(results, f) 
     elif format == 'json': # If specified, save results in a json file.
-        with open(args.out, 'w') as f:
+        with open(path, 'w') as f:
             json.dump(results, f, cls=NumpyEncoder)
 
 
