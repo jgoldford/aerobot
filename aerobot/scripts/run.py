@@ -13,8 +13,6 @@ from typing import Dict, NoReturn
 import time
 import pickle
 
-
-
 def print_summary(results:Dict) -> NoReturn:
     '''Print a summary of the evaluation results to the terminal.'''
     task = 'binary' if results['binary'] else 'ternary' # Get whether the classification task was ternary or binary.
@@ -33,7 +31,7 @@ def check_args(args):
 if __name__ == '__main__':
 
     parser = argparse.ArgumentParser()
-    parser.add_argument('model-class', choices=['nonlinear', 'logistic'], required=True, help='The type of model to train.')
+    parser.add_argument('model-class', choices=['nonlinear', 'logistic'], help='The type of model to train.')
     parser.add_argument('--feature-type', type=str, default='KO', choices=FEATURE_SUBTYPES + FEATURE_TYPES, help='The feature type on which to train.')
     parser.add_argument('--out', '-o', default='run_model_results.pkl', help='The location to which the pickled results will be written.')
     parser.add_argument('--output-format', default='pkl', choices=['pkl', 'json'], help='Format of the results file.')
