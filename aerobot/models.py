@@ -21,7 +21,7 @@ class Nonlinear(torch.nn.Module):
         weight_decay:float=0.01, 
         hidden_dim:int=512, 
         lr:float=0.00001, 
-        n_epochs:int=20, 
+        n_epochs:int=1000, 
         batch_size:int=16, 
         alpha:int=10, 
         early_stopping:bool=True, 
