@@ -21,6 +21,36 @@ import pandas as pd
 
 # Should I include the baselines used in the paper?
 
+# def print_taxonomy_info(dataset:Dict[str, pd.DataFrame], level:str='Class'):
+def print_taxonomy_info(level:str='Class', feature_type:str='KO'):
+    '''Print taxonomy information about the entries in the input dataset. Note that the number of unclassified entries
+    printed by this function does not necessarily match the build_datasets.py output, as the counting performed by that script
+    is done prior to de-duplication.
+    
+    :param level: The taxonomic level for which to display information.
+    :param feature_type: The feature type for which to load the data. Results should be the same regardless of feature type.
+    '''
+    # Make sure the dataset has been loaded as a pandas DataFrame, not a numpy array. 
+    # assert isinstance(dataset['labels'], pd.DataFrame), 'print_phylogenetic_info: There is no phylogenetic information in the dataset.'
+    assert level in ['Kingdom', 'Phylum', 'Class', 'Order', 'Family', 'Genus', 'Species'], f'print_phylogenetic_info: Phylogenetic level {level} is invalid.'
+    dataset = dataset_load_all(feature_type=feature_type, to_numpy=False)
+    labels = dataset['labels']
+    tax_info = labels[[level]] # This is the GTDB taxonomy for each entry.
+    n_unclassified = np.sum(tax_info[level].str.match('no rank').values) # Get number of unclassified entries. 
+    tax_info = tax_info[~tax_info[level].str.match('no rank')] # Remove anything labeled "no rank"
+    sizes = []
+    print(f'Summary of GTDB taxonomy for level {level.lower()}...')
+    for taxon, info in tax_info.groupby(level):
+        sizes.append(len(info))
+        print('\t' + taxon, f'(n={len(info)})')
+
+    mean = np.round(np.mean(sizes), 2)
+    std = np.round(np.std(sizes), 2)
+    print(f'\nMean number of members per {level.lower()}: {mean} +/- {std}')
+    print(f'Smallest {level.lower()} size: {min(sizes)}')
+    print(f'Largest {level.lower()} size: {max(sizes)}')
+    print(f'Number of unclassified entries:', n_unclassified)
+
 
 def phylogenetic_cross_validation(dataset:Dict[str, pd.DataFrame], n_splits:int=5, level:str='Class', model_class:str='nonlinear', params:Dict={}) -> Dict:
     '''Perform cross-validation using holdout sets partitioned according to the specified taxonomic level. For example, if the 

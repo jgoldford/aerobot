@@ -1,4 +1,4 @@
-'''Functions for reading and writing data from files.'''
+'''Functions for reading and writing data from files, as well as some utilities for the command-line interface.'''
 import pandas as pd
 import numpy as np
 import os
@@ -7,6 +7,7 @@ import wget
 from typing import Dict, NoReturn, Tuple
 from aerobot.chemical import get_chemical_features
 import json
+import argumentparser
 
 CWD, _ = os.path.split(os.path.abspath(__file__))
 ASSET_PATH = os.path.join(CWD, 'assets')
@@ -20,15 +21,15 @@ FEATURE_TYPES += [f'aa_{i}mer' for i in range(1, 4)]
 FEATURE_SUBTYPES = ['metadata.number_of_genes', 'metadata.oxygen_genes', 'metadata.pct_oxygen_genes']
 
 
-# NOTE: Where are these used?
-def load_ko2ec():
-    p = os.path.join(ASSET_PATH, 'mappings/keggOrthogroupsToECnumbers.07Feb2023.csv')
-    return pd.read_csv(p, index_col=0)
+# # NOTE: Where are these used?
+# def load_ko2ec():
+#     p = os.path.join(ASSET_PATH, 'mappings/keggOrthogroupsToECnumbers.07Feb2023.csv')
+#     return pd.read_csv(p, index_col=0)
 
 
-def load_oxygen_kos():
-    p = os.path.join(ASSET_PATH, 'mappings/ko_groups.oxygenAssociated.07Feb2023')
-    return pd.read_csv(p, index_col=0)
+# def load_oxygen_kos():
+#     p = os.path.join(ASSET_PATH, 'mappings/ko_groups.oxygenAssociated.07Feb2023')
+#     return pd.read_csv(p, index_col=0)
 
 
 class NumpyEncoder(json.JSONEncoder):
@@ -44,6 +45,20 @@ class NumpyEncoder(json.JSONEncoder):
         if isinstance(obj, np.bool_):
             return bool(obj)
         return super(NumpyEncoder, self).default(obj)
+
+
+def read_params(args:argumentparser.ArgumentParser, model_class:str='nonlinear') -> Dict:
+    '''Read in model parameters from an ArgumentParser object.
+
+    :param args: An ArgumentParser populated with parameters from the command-line.
+    :param model_class: The type of model which the parameters will be passed into. One of 'logistic', 'nonlinear'.
+    :
+    '''
+    # Determine which parameters to look for in the args, depending on the specified model class. 
+    nonlinear_param_options = ['weight_decay', 'n_epochs', 'input_dim', 'hidden_dim', 'alpha', 'lr', 'batch_size', 'early_stopping', 'input_dim']
+    logistic_param_options = ['C', 'penalty', 'max_iter']
+    param_options = nonlinear_param_options if model_class == 'nonlinear' else logistic_param_options
+    return {param:getattr(args, param) for param in param_options}
 
 
 def save_results_dict(results:Dict, path:str, format:str='json') -> NoReturn:

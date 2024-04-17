@@ -17,8 +17,28 @@ else:
 
 class Nonlinear(torch.nn.Module):
     '''Two-layer neural network for classification.'''
-    def __init__(self, input_dim:int=None, weight_decay:float=0.01, hidden_dim:int=512, lr:float=0.00001, n_epochs:int=2, batch_size:int=16, alpha:int=10, early_stopping:bool=True):
-        
+    def __init__(self, input_dim:int=None, 
+        weight_decay:float=0.01, 
+        hidden_dim:int=512, 
+        lr:float=0.00001, 
+        n_epochs:int=20, 
+        batch_size:int=16, 
+        alpha:int=10, 
+        early_stopping:bool=True, 
+        n_classes:int=3):
+        '''Initialize a Nonlinear classifier.
+
+        :param input_dim: The dimensionality of input vectors. This is the number of nodes in the first linear layer.
+        :param weight_decay: The L2 regularization penalty to be passed into the Adam optimizer.
+        :param hidden_dim: The number of nodes in the second linear layer. 
+        :param lr: The learning rate.
+        :param n_epochs: The maximum number of epochs to train the classifier. 
+        :param batch_size: The size of the batches for model training. 
+        :param alpha: The early stopping threshold. Early stopping is triggered when the generalization loss exceeds this threshold,
+            and early_stopping=True.
+        :param early_stopping: Whether or not to use early stopping during training. 
+        :param n_classes: The number of classes. This is the output dimension of the second linear layer. 
+        '''        
         torch.manual_seed(42) # Seed the RNG for reproducibility.
         super().__init__()
 
@@ -28,7 +48,7 @@ class Nonlinear(torch.nn.Module):
         self.input_dim = input_dim
         self.hidden_dim = hidden_dim
         self.classes_ = None # Will be populated later, for consistency with LogisticRegression model.
-        self.n_classes = 3 # Number of categories.
+        self.n_classes = n_classes
         self.encoder = sklearn.preprocessing.OneHotEncoder(handle_unknown='error', sparse_output=False)
         self.lr = lr
         self.alpha = alpha
@@ -222,35 +242,6 @@ class GeneralClassifier():
         instance.classifier = classifier
         instance.scaler = scaler
         return instance
-
-
-def train_logistic(X:np.ndarray, y:np.ndarray, params:Dict={'penalty':'l2', 'C':100, 'max_iter':10000}) -> GeneralClassifier:
-    '''Train a LogisticRegression-based classifier.
-
-    :param X: A numpy array containing the training features.
-    :param y: A numpy array containing the training labels.
-    :param params: A dictionary of keyword arguments to pass into the classifier initialization function.
-    :return: A trained instance of a GeneralClassifier based on logistic regression.
-    '''
-    model = GeneralClassifier(model_class=LogisticRegression, params=params) # Instantiate a classifier.
-    model.fit(X, y)
-    return model
-
-
-def train_nonlinear(X:np.ndarray, y:np.ndarray, X_val:np.ndarray, y_val:np.ndarray, params:Dict={}) -> GeneralClassifier:
-    '''Train a Nonlinear-based classifier.
-
-    :param X: A numpy array containing the training features.
-    :param y: A numpy array containing the training labels.
-    :param X_val: A numpy array containing the validation features.
-    :param y_val: A numpy array containing the validation labels. 
-    :param params: A dictionary of keyword arguments to pass into the classifier initialization function.
-    :return: A trained instance of a GeneralClassifier based on a nonlinear neural network.
-    '''
-    params.update({'input_dim':X.shape[-1]}) # make sure input dimensions are included. 
-    model = GeneralClassifier(model_class=Nonlinear, params=params) # Instantiate a classifier.
-    model.fit(X, y, X_val=X_val, y_val=y_val)
-    return model
 
 
 def evaluate(model:GeneralClassifier, X:np.ndarray, y:np.ndarray, X_val:np.ndarray, y_val:np.ndarray) -> Dict:
