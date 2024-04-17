@@ -7,7 +7,7 @@ import wget
 from typing import Dict, NoReturn, Tuple
 from aerobot.chemical import get_chemical_features
 import json
-import argumentparser
+import argparse
 
 CWD, _ = os.path.split(os.path.abspath(__file__))
 ASSET_PATH = os.path.join(CWD, 'assets')
@@ -47,7 +47,7 @@ class NumpyEncoder(json.JSONEncoder):
         return super(NumpyEncoder, self).default(obj)
 
 
-def read_params(args:argumentparser.ArgumentParser, model_class:str='nonlinear') -> Dict:
+def read_params(args:argparse.ArgumentParser, model_class:str='nonlinear') -> Dict:
     '''Read in model parameters from an ArgumentParser object.
 
     :param args: An ArgumentParser populated with parameters from the command-line.
