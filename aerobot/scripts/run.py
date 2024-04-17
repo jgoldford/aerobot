@@ -58,7 +58,7 @@ if __name__ == '__main__':
     X, y, X_val, y_val = training_dataset['features'], training_dataset['labels'], validation_dataset['features'], validation_dataset['labels']
 
     model_class = getattr(args, 'model-class') # Extract the specified model class.
-    params = read_params(model_class, args) # Read in model parameters from the command-line arguments.
+    params = read_params(args, model_class=model_class) # Read in model parameters from the command-line arguments.
     if model_class == 'nonlinear':
         params.update({'n_classes':3 if not args.binary else 2})
         params.update({'input_dim':X.shape[-1]}) # Make sure input dimensions are included. 
