@@ -82,6 +82,36 @@ def merge_datasets(training_dataset:Dict[str, pd.DataFrame], validation_dataset:
     return {'features':features, 'labels':labels}
 
 
+def autofill_taxonomy(labels:pd.DataFrame) -> pd.DataFrame:
+
+    # Redefine ranks from lowest-level to highest-level. 
+    levels = ['Species', 'Genus', 'Family', 'Order', 'Class', 'Phylum', 'Kingdom']
+
+    # I noticed that no entries have no assigned species, but some do not have an assigned genus. 
+    # Decided to autofill genus with the species string. I checked to make sure that every non-NaN genus is 
+    # consistent with the genus in the species string, so this should be OK.
+    assert np.all(~labels.Species.isnull()), 'autofill_taxonomy: Some entries have no assigned Species'
+    labels['Genus'] = labels['Species'].apply(lambda s : s.split(' ')[0])
+    
+    # tax, n_autofilled = [], 0
+    # for genus, df in labels.groupby('Genus', dropna=False):
+    #     # genus_idxs = np.where(labels.Genus.values == g)[0]
+    #     n_init_unclassified = df[levels].isnull().values.sum()
+    #     df[levels] = df[levels].fillna(method='ffill')
+    #     n_final_unclassified = df[levels].isnull().values.sum()
+    #     n_autofilled += n_init_unclassified - n_final_unclassified
+    #     tax.append(df)
+    
+    # print(f'\tautofill_taxonomy: Autofilled {n_autofilled} taxonomy entries.')
+    # tax = pd.concat(tax, axis=0)
+    # assert np.all(np.sort(tax.index.values) == np.sort(labels.index.values)), 'autofill_taxonomy: The indices in the taxonomy DataFrame do not match the labels DataFrame.'
+    # labels, tax = labels.align(tax, join='inner', axis=0) # Align the indices.
+    # labels = labels.combine_first(tax)
+
+    return labels
+
+
+
 def fill_missing_taxonomy(labels:pd.DataFrame) -> pd.DataFrame:
     '''Fill in missing taxonomy information from the GTDB taxonomy strings. This is necessary because
     different data sources have different taxonomy information populated. Note that every entry should have
@@ -90,14 +120,23 @@ def fill_missing_taxonomy(labels:pd.DataFrame) -> pd.DataFrame:
     :param labels: The combined training and validation labels DataFrame.
     :return: The labels DataFrame with corrected taxonomy.
     '''
-    # tax = labels.ncbi_taxonomy.str.split(';', expand=True)
-    tax = labels.gtdb_taxonomy.str.split(';', expand=True)
-    tax = tax.apply(lambda x: x.str.split('__').str[1])
-    tax.columns = ['Kingdom', 'Phylum', 'Class', 'Order', 'Family', 'Genus', 'Species']
+    levels = ['Kingdom', 'Phylum', 'Class', 'Order', 'Family', 'Genus', 'Species'] # Define the taxonomic levels. 
+
+    tax = labels.gtdb_taxonomy.str.split(';', expand=True) # Split the GTDB taxonomy strings.
+    tax = tax.apply(lambda x: x.str.split('__').str[1]) # Remove the g__, s__, etc. prefixes.
+    tax.columns = levels # Label the taxonomy columns. 
     # Use the tax DataFrame to fill in missing taxonomy values in the labels DataFrame
-    labels = labels.combine_first(tax)
-    # Make sure everything at least has a class label.
-    assert np.all(~pd.isnull(labels['Class'].values)), 'fill_missing_taxonomy: Some entries have no assigned Class.'
+    labels = labels.replace('no rank', np.nan).combine_first(tax)
+    # Make sure everything at least has a class label. Maybe check for other taxonomies while we are at it.
+    labels = autofill_taxonomy(labels)
+
+    for level in levels[::-1]: # Make sure all taxonomy has been populated.
+        n_unclassified = np.sum(labels[level].isnull())
+        if n_unclassified > 0:
+            print(f'\tfill_missing_taxonomy: {n_unclassified} entries have no assigned {level.lower()}.')
+        # assert n_unclassified == 0, f'fill_missing_taxonomy: {n_unclassified} entries have no assigned {level.lower()}.'
+    # labels[levels] = labels[levels].fillna('no rank') # Fill any NaNs with a "no rank" string for consistency.
+    labels[levels] = labels[levels].fillna('no rank') # Fill in all remaining blank taxonomies with 'no rank'
     return labels
 
 

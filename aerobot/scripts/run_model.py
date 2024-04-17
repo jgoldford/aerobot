@@ -2,7 +2,7 @@
 import pandas as pd
 import numpy as np
 import tqdm
-from aerobot.io import ASSET_PATH, FEATURE_TYPES, FEATURE_SUBTYPES, NumpyEncoder
+from aerobot.io import ASSET_PATH, FEATURE_TYPES, FEATURE_SUBTYPES, save_results_dict 
 from aerobot.dataset import dataset_load_training_validation
 from aerobot.models import train_nonlinear, train_logistic, evaluate 
 # from joblib import Parallel, delayed
@@ -11,8 +11,6 @@ import argparse
 from typing import Dict, NoReturn
 import time
 import pickle
-import json
-
 
 
 
@@ -38,7 +36,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('model-class', choices=['nonlinear', 'logistic'], default='nonlinear', help='The type of model to train.')
     parser.add_argument('--feature-type', '-f', type=str, default='KO', choices=FEATURE_SUBTYPES + FEATURE_TYPES, help='The feature type on which to train.')
-    parser.add_argument('--out', '-o', default='results.pkl', help='The location to which the pickled results will be written.')
+    parser.add_argument('--out', '-o', default='run_model_results.pkl', help='The location to which the pickled results will be written.')
     parser.add_argument('--output-format', default='pkl', choices=['pkl', 'json'], help='Format of the results file.')
     parser.add_argument('--binary', '-b', default=0, type=bool, help='Whether to train on the binary classification task. If False, then ternary classification is performed.')
     
@@ -70,12 +68,7 @@ if __name__ == '__main__':
     print_summary(results) # Print a summary of the training run to the terminal. 
 
     print(f'\nWriting results to {args.out}.')
-    if args.output_format == 'pkl': # If specified, save results in a pickle file.
-        with open(args.out, 'wb') as f:
-            pickle.dump(results, f) 
-    elif args.output_format == 'json': # If specified, save results in a json file.
-        with open(args.out, 'w') as f:
-            json.dump(results, f, cls=NumpyEncoder)
+    save_results_dict(results, args.out, format=args.output_format)
     
     t2 = time.perf_counter()
     print(f'\nModel run complete in {np.round(t2 - t1, 2)} seconds.')

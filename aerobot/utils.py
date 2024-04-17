@@ -13,9 +13,12 @@ import time
 
 # def print_taxonomy_info(dataset:Dict[str, pd.DataFrame], level:str='Class'):
 def print_taxonomy_info(level:str='Class', feature_type:str='KO'):
-    '''Print taxonomy information about the entries in the input dataset.
+    '''Print taxonomy information about the entries in the input dataset. Note that the number of unclassified entries
+    printed by this function does not necessarily match the build_datasets.py output, as the counting performed by that script
+    is done prior to de-duplication.
     
     :param level: The taxonomic level for which to display information.
+    :param feature_type: The feature type for which to load the data. Results should be the same regardless of feature type.
     '''
     # Make sure the dataset has been loaded as a pandas DataFrame, not a numpy array. 
     # assert isinstance(dataset['labels'], pd.DataFrame), 'print_phylogenetic_info: There is no phylogenetic information in the dataset.'
@@ -23,6 +26,8 @@ def print_taxonomy_info(level:str='Class', feature_type:str='KO'):
     dataset = dataset_load_all(feature_type=feature_type, to_numpy=False)
     labels = dataset['labels']
     tax_info = labels[[level]] # This is the GTDB taxonomy for each entry.
+    n_unclassified = np.sum(tax_info[level].str.match('no rank').values) # Get number of unclassified entries. 
+    tax_info = tax_info[~tax_info[level].str.match('no rank')] # Remove anything labeled "no rank"
     sizes = []
     print(f'Summary of GTDB taxonomy for level {level.lower()}...')
     for taxon, info in tax_info.groupby(level):
@@ -34,8 +39,9 @@ def print_taxonomy_info(level:str='Class', feature_type:str='KO'):
     print(f'\nMean number of members per {level.lower()}: {mean} +/- {std}')
     print(f'Smallest {level.lower()} size: {min(sizes)}')
     print(f'Largest {level.lower()} size: {max(sizes)}')
+    print(f'Number of unclassified entries:', n_unclassified)
 
-print_taxonomy_info(level='Class')
+
 # def count_aa_kmers(fasta_files, k):
 #     """
 #     load fasta files and count kmers for amino acid sequences

@@ -4,9 +4,10 @@ import joblib
 import torch
 import sklearn
 import numpy as np
-from sklearn.metrics import confusion_matrix, balanced_accuracy_score
+from sklearn.metrics import confusion_matrix, balanced_accuracy_score, f1_score
 from tqdm import tqdm
 from typing import Tuple, NoReturn, List, Dict
+from sklearn.linear_model import LogisticRegression
 
 # Use a GPU if one is available. 
 if torch.cuda.is_available():
@@ -16,7 +17,7 @@ else:
 
 class Nonlinear(torch.nn.Module):
     '''Two-layer neural network for classification.'''
-    def __init__(self, input_dim:int=None, weight_decay:float=0.01, hidden_dim:int=512, lr:float=0.0001, n_epochs:int=50, batch_size:int=16, alpha:int=10, early_stopping:bool=True):
+    def __init__(self, input_dim:int=None, weight_decay:float=0.01, hidden_dim:int=512, lr:float=0.00001, n_epochs:int=2, batch_size:int=16, alpha:int=10, early_stopping:bool=True):
         
         torch.manual_seed(42) # Seed the RNG for reproducibility.
         super().__init__()
@@ -162,10 +163,14 @@ class GeneralClassifier():
         '''
         self.classifier = model_class(**params) if params else model_class()
         self.scaler = StandardScaler() if normalize else None
+        self.n_classes = None # To be populated after fitting the model, indicated binary or ternary classification. 
 
     def fit(self, X:np.ndarray, y:np.ndarray, X_val:np.ndarray=None, y_val:np.ndarray=None):
         '''Fit the underlying model to training data.'''
         X = X if (not self.scaler) else self.scaler.fit_transform(X) # Standardize the input, if specified.
+
+        self.n_classes = len(np.unique(y)) # Get the number of classes. 
+
         if (X_val is not None) and (y_val is not None):
             X_val = X_val if (not self.scaler) else self.scaler.fit_transform(X_val)
             self.classifier.fit(X, y, X_val=X_val, y_val=y_val)
@@ -189,6 +194,14 @@ class GeneralClassifier():
         X = X if (not self.scaler) else self.scaler.transform(X) # Standardize the input, if specified.
         y_pred = self.classifier.predict(X)
         return confusion_matrix(y, y_pred)
+
+    def f1_score(self, X:np.ndarray, y:np.ndarray) -> float:
+        '''Compute the F1 score, which is defined as tp / (tp + 0.5 * (fp + fn)), or 2 / (1/precition + 1/recall) for a binary classification problem.
+        For a ternary classification problem, use a one-versus-all approach to compute the individual scores for each class, and
+        then taking the average (which can be weighted).'''
+        X = X if (not self.scaler) else self.scaler.transform(X) # Standardize the input, if specified.
+        y_pred = self.classifier.predict(X)
+        return f1_score(y, y_pred, average='weighted' if self.n_classes > 2 else 'binary')
 
     def save(self, path:str) -> NoReturn:
         '''Save the GeneralClassifier instance to a file.
@@ -224,7 +237,7 @@ def train_logistic(X:np.ndarray, y:np.ndarray, params:Dict={'penalty':'l2', 'C':
     return model
 
 
-def train_nonlinear(X:np.ndarray, y:np.ndarray, X_val:np.ndarray, y_val:np.ndarray, params:Dict=None) -> GeneralClassifier:
+def train_nonlinear(X:np.ndarray, y:np.ndarray, X_val:np.ndarray, y_val:np.ndarray, params:Dict={}) -> GeneralClassifier:
     '''Train a Nonlinear-based classifier.
 
     :param X: A numpy array containing the training features.
@@ -234,6 +247,7 @@ def train_nonlinear(X:np.ndarray, y:np.ndarray, X_val:np.ndarray, y_val:np.ndarr
     :param params: A dictionary of keyword arguments to pass into the classifier initialization function.
     :return: A trained instance of a GeneralClassifier based on a nonlinear neural network.
     '''
+    params.update({'input_dim':X.shape[-1]}) # make sure input dimensions are included. 
     model = GeneralClassifier(model_class=Nonlinear, params=params) # Instantiate a classifier.
     model.fit(X, y, X_val=X_val, y_val=y_val)
     return model
@@ -256,6 +270,7 @@ def evaluate(model:GeneralClassifier, X:np.ndarray, y:np.ndarray, X_val:np.ndarr
     results['validation_acc'] = model.balanced_accuracy(X_val, y_val)
     results['classes'] = model.classifier.classes_
     results['confusion_matrix'] = model.confusion_matrix(X_val, y_val).ravel()
+    results['f1_score'] = model.f1_score(X_val, y_val)
 
     if isinstance(model.classifier, LogisticRegression): # Only applies if the model used LogisticRegression.
         n_iter = model.classifier.n_iter_[0]
@@ -271,65 +286,6 @@ def evaluate(model:GeneralClassifier, X:np.ndarray, y:np.ndarray, X_val:np.ndarr
     
     return results
 
-    # def hyperparameter_optimization(self, X, y, param_grid, cv_strategy=None):
-    #     if self.scaler:
-    #         X = self.scaler.fit_transform(X)
 
-    #     # Use StratifiedShuffleSplit as the default CV strategy if not provided
-    #     if not cv_strategy:
-    #         cv_strategy = StratifiedShuffleSplit(n_splits=10, test_size=0.2)
+ 
 
-    #     grid_search = GridSearchCV(self.classifier, param_grid, cv=cv_strategy)
-    #     grid_search.fit(X, y)
-    #     self.classifier = grid_search.best_estimator_
-    #     return grid_search.best_params_
-
-    # def perform_cross_validation(self, X, y, cv=5):
-    #     if self.scaler:
-    #         X = self.scaler.fit_transform(X)
-    #     scores = cross_val_score(self.classifier, X, y, cv=cv)
-    #     return scores.mean(), scores.std()
-
-
-# class LogisticClassifier:
-#     def __init__(self, cs=10, cv=5, random_state=42, max_iter=10000, normalize=True):
-#         self.classifier = LogisticRegressionCV(Cs=cs, cv=cv, random_state=random_state, max_iter=max_iter)
-#         self.scaler = StandardScaler() if normalize else None
-
-#     def fit(self, X, y):
-#         if self.scaler:
-#             X = self.scaler.fit_transform(X)
-#         self.classifier.fit(X, y)
-
-#     def predict(self, X):
-#         if self.scaler:
-#             X = self.scaler.transform(X)
-#         return self.classifier.predict(X)
-        
-#     def score(self, X, y):
-#         if self.scaler:
-#             X = self.scaler.transform(X)
-#         return self.classifier.score(X, y)
-    
-#     def balanced_accuracy(self, X, y):
-#         if self.scaler:
-#             X = self.scaler.transform(X)
-#         y_pred = self.classifier.predict(X)
-#         return balanced_accuracy_score(y, y_pred)
-
-#     def confusion_matrix(self, X, y):
-#         if self.scaler:
-#             X = self.scaler.transform(X)
-#         y_pred = self.classifier.predict(X)
-#         return confusion_matrix(y, y_pred)
-
-#     def save(self, filename):
-#         joblib.dump((self.classifier, self.scaler), filename)
-
-#     @classmethod
-#     def load(cls, filename):
-#         classifier, scaler = joblib.load(filename)
-#         instance = cls()
-#         instance.classifier = classifier
-#         instance.scaler = scaler
-#         return instance

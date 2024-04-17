@@ -46,6 +46,21 @@ class NumpyEncoder(json.JSONEncoder):
         return super(NumpyEncoder, self).default(obj)
 
 
+def save_results_dict(results:Dict, path:str, format:str='json') -> NoReturn:
+    '''Write a dictionary of results to the output path.
+
+    :param results: A dictionary containing results from a model run, cross-validation, etc.
+    :param path: The path to write the results to. 
+    :param format: Either 'json' or 'pkl', specifies how to save the results.
+    '''
+    if format == 'pkl': # If specified, save results in a pickle file.
+        with open(path, 'wb') as f:
+            pickle.dump(results, f) 
+    elif format == 'json': # If specified, save results in a json file.
+        with open(args.out, 'w') as f:
+            json.dump(results, f, cls=NumpyEncoder)
+
+
 def save_hdf(datasets:Dict[str, pd.DataFrame], path:str)-> NoReturn:
     '''Save a dictionary of pandas DataFrames as an HD5 file at the specified output path.
 
