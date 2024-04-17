@@ -55,7 +55,7 @@ def read_params(args:argparse.ArgumentParser, model_class:str='nonlinear') -> Di
     :return
     '''
     # Determine which parameters to look for in the args, depending on the specified model class. 
-    nonlinear_param_options = ['weight_decay', 'n_epochs', 'input_dim', 'hidden_dim', 'alpha', 'lr', 'batch_size', 'early_stopping', 'input_dim']
+    nonlinear_param_options = ['weight_decay', 'n_epochs', 'hidden_dim', 'alpha', 'lr', 'batch_size', 'early_stopping']
     logistic_param_options = ['C', 'penalty', 'max_iter']
     param_options = nonlinear_param_options if model_class == 'nonlinear' else logistic_param_options
     return {param:getattr(args, param) for param in param_options}
