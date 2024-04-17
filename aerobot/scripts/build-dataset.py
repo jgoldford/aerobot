@@ -3,7 +3,7 @@ and validation sets with no repeated species across the two sets. '''
 import numpy as np
 import pandas as pd
 from aerobot.io import save_hdf, ASSET_PATH, FEATURE_TYPES, FEATURE_SUBTYPES
-from aerobot.chemical import get_chemical_features
+from aerobot.chemical import chemical_get_features
 import os
 import subprocess
 import wget
@@ -38,7 +38,7 @@ def load_training_data(path:str=os.path.join(ASSET_PATH, 'train/training_data.h5
         nt1_df = pd.read_hdf(path, key=key_map['nt_1mer'])
         aa1_df = pd.read_hdf(path, key=key_map['aa_1mer'])
         cds1_df = pd.read_hdf(path, key=key_map['cds_1mer'])
-        features = get_chemical_features(metadata_df=metadata_df, aa1_df=aa1_df, nt1_df=nt1_df, cds1_df=cds1_df)
+        features = chemical_get_features(metadata_df=metadata_df, aa1_df=aa1_df, nt1_df=nt1_df, cds1_df=cds1_df)
     else:
         features = pd.read_hdf(path, key=key_map[feature_type])
     if feature_type == 'metadata': # NOTE: This is ported over from the build_datasets script.
@@ -162,7 +162,7 @@ def load_validation_data(path:str=os.path.join(ASSET_PATH, 'validation/features/
         nt1_df = pd.read_csv(os.path.join(path, filename_map['nt_1mer']), index_col=0)
         aa1_df = pd.read_csv(os.path.join(path, filename_map['aa_1mer']), index_col=0)
         cds1_df = pd.read_csv(os.path.join(path, filename_map['cds_1mer']), index_col=0)
-        features = get_chemical_features(metadata_df=metadata_df, aa1_df=aa1_df, nt1_df=nt1_df, cds1_df=cds1_df)
+        features = chemical_get_features(metadata_df=metadata_df, aa1_df=aa1_df, nt1_df=nt1_df, cds1_df=cds1_df)
     else:
         features = pd.read_csv(os.path.join(path, filename_map[feature_type]), index_col=0)
         # If the feature type is one of the following, fill 0 values with NaNs.

@@ -1,0 +1,1 @@
+{"training_acc": 1.0, "validation_acc": 0.7678170791903994, "classes": ["aerobe", "anaerobe", "facultative"], "confusion_matrix": [287, 17, 35, 16, 212, 15, 24, 8, 45], "f1_score": 0.8302152789766158, "n_iter": 3349, "converged": true, "C": 100, "penalty": "l2", "max_iter": 10000, "feature_type": "embedding.genome", "model_class": "logistic", "binary": 0}

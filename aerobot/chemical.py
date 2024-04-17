@@ -81,7 +81,7 @@ def get_aa_features(aa1_df:pd.DataFrame) -> pd.Series:
     return pd.concat(cols, axis=1)
 
 
-def get_chemical_features(metadata_df:pd.DataFrame=None, cds1_df:pd.DataFrame=None, aa1_df:pd.DataFrame=None, nt1_df=None) -> pd.DataFrame:
+def chemical_get_features(metadata_df:pd.DataFrame=None, cds1_df:pd.DataFrame=None, aa1_df:pd.DataFrame=None, nt1_df=None) -> pd.DataFrame:
     '''Compute chemical features using other feature DataFrames and the metadata.
 
     :param metadata_df: DataFrame containing the gene metadata.

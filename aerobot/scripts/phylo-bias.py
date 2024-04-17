@@ -116,4 +116,4 @@ if __name__ == '__main__':
 
 
     print(f'\nWriting results to {args.out}.')
-    save_results_dict(results, args.out, format=args.output_format)
+    save_results_dict(results, args.out, fmt=args.output_format)

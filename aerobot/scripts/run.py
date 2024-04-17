@@ -79,7 +79,7 @@ if __name__ == '__main__':
     print_summary(results) # Print a summary of the training run to the terminal. 
 
     print(f'\nWriting results to {args.out}.')
-    save_results_dict(results, args.out, format=args.output_format)
+    save_results_dict(results, args.out, fmt=args.output_format)
     
     t2 = time.perf_counter()
     print(f'\nModel run complete in {np.round(t2 - t1, 2)} seconds.')

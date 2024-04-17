@@ -5,7 +5,6 @@ import os
 import subprocess as sb
 import wget
 from typing import Dict, NoReturn, Tuple
-from aerobot.chemical import get_chemical_features
 import json
 import argparse
 
@@ -46,6 +45,10 @@ class NumpyEncoder(json.JSONEncoder):
             return bool(obj)
         return super(NumpyEncoder, self).default(obj)
 
+class NumpyDecoder(json.JSONDecoder):
+    # TODO: This might be overkill, but for converting JSON stuff back to numpy objects.
+    pass
+
 
 def read_params(args:argparse.ArgumentParser, model_class:str='nonlinear') -> Dict:
     '''Read in model parameters from an ArgumentParser object.
@@ -61,19 +64,37 @@ def read_params(args:argparse.ArgumentParser, model_class:str='nonlinear') -> Di
     return {param:getattr(args, param) for param in param_options}
 
 
-def save_results_dict(results:Dict, path:str, format:str='json') -> NoReturn:
+def save_results_dict(results:Dict, path:str, fmt:str='json') -> NoReturn:
     '''Write a dictionary of results to the output path.
 
     :param results: A dictionary containing results from a model run, cross-validation, etc.
     :param path: The path to write the results to. 
     :param format: Either 'json' or 'pkl', specifies how to save the results.
     '''
-    if format == 'pkl': # If specified, save results in a pickle file.
+    if fmt == 'pkl': # If specified, save results in a pickle file.
         with open(path, 'wb') as f:
             pickle.dump(results, f) 
-    elif format == 'json': # If specified, save results in a json file.
+    elif fmt == 'json': # If specified, save results in a json file.
         with open(path, 'w') as f:
             json.dump(results, f, cls=NumpyEncoder)
+
+
+def load_results_dict(path:str) -> Dict:
+    '''Read in a dictionary of results (e.g. from the evaluate function) stored either as a JSON or pickle file.
+
+    :param path: The location of the file containing the results.
+    :return: A dictionary containing the results. 
+    '''
+    fmt = path.split('.')[-1]
+    assert fmt in ['pkl', 'json'], 'read_results_dict: File is not in a supported format. Must be either .pkl or .json.'
+    if fmt == 'json':
+        with open(path, 'r') as f:
+            results = json.load(f)
+    elif fmt == 'pkl':
+        with open(path, 'rb') as f:
+            results = pickle.load(f)
+    return results
+
 
 
 def save_hdf(datasets:Dict[str, pd.DataFrame], path:str)-> NoReturn:

@@ -6,7 +6,7 @@ import os
 import subprocess as sb
 import wget
 from typing import Dict, NoReturn, Tuple
-from aerobot.chemical import get_chemical_features
+from aerobot.chemical import chemical_get_features
 from aerobot.io import load_hdf, FEATURE_SUBTYPES, FEATURE_TYPES, ASSET_PATH
 import json
 
