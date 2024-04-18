@@ -65,7 +65,7 @@ def read_params(args:argparse.ArgumentParser, model_class:str='nonlinear') -> Di
     params = {param:getattr(args, param) for param in param_options}
     if model_class == 'nonlinear':
         # Need to specify the number of classes for Nonlinear, as this is the dimension of the output layer.
-        params.update({'n_classes':3 if not binary else 2})
+        params.update({'n_classes':3 if not args.binary else 2})
     return params
 
 
