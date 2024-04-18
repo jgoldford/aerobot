@@ -123,9 +123,9 @@ if __name__ == '__main__':
         print(f'Performing phylogeny-based cross-validation with {level.lower()}-level holdout set.')
         # Retrieve the F1 scores for the level. 
         level_scores = phylogenetic_cross_validation(dataset, level=level, model_class=model_class, n_splits=args.n_splits, params=params)
-        level_scores[level]['std'] = np.std(scores)
-        level_scores[level]['err'] = np.std(scores) / np.sqrt(len(scores))
-        level_scores[level]['mean'] = np.mean(scores)
+        scores[level]['std'] = np.std(level_scores)
+        scores[level]['err'] = np.std(level_scores) / np.sqrt(len(level_scores))
+        scores[level]['mean'] = np.mean(level_scores)
 
     results = {'scores':scores}
     # Add other relevant information to the results dictionary.
