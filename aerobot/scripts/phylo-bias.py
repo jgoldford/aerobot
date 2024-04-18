@@ -111,7 +111,8 @@ if __name__ == '__main__':
     parser.add_argument('--max-iter', default=10000, type=int, help='Maximum number of iterations for the LogisticRegression classifier.') 
 
     args = parser.parse_args()
-    params = read_params(args) # Read in model parameter specifications from the command line input.
+    model_class = getattr(args, 'model-class') # Get the model class to run.
+    params = read_params(args, model_class=model_class) # Read in model parameter specifications from the command line input.
     dataset, _ = dataset_load_training_validation(args.feature_type, binary=args.binary, to_numpy=False) # Load the training dataset without converting to numpy arrays (yet).
     
     levels = ['Phylum', 'Class', 'Order', 'Family', 'Genus', 'Species'] # Define the taxonomic levels. Kingdom is ommitted.
@@ -121,7 +122,7 @@ if __name__ == '__main__':
     for level in levels:
         print(f'Performing phylogeny-based cross-validation with {level.lower()}-level holdout set.')
         # Retrieve the F1 scores for the level. 
-        level_scores = phylogenetic_cross_validation(dataset, level=level, model_class=getattr(args, 'model-class'), n_splits=args.n_splits, params=params)
+        level_scores = phylogenetic_cross_validation(dataset, level=level, model_class=model_class, n_splits=args.n_splits, params=params)
         level_scores[level]['std'] = np.std(scores)
         level_scores[level]['err'] = np.std(scores) / np.sqrt(len(scores))
         level_scores[level]['mean'] = np.mean(scores)
