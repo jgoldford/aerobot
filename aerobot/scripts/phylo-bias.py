@@ -5,7 +5,8 @@ from aerobot.dataset import dataset_to_numpy, dataset_load_all, dataset_load_tra
 from sklearn.model_selection import LeaveOneGroupOut, GroupKFold
 from aerobot.io import FEATURE_SUBTYPES, FEATURE_TYPES, save_results_dict
 import argparse
-from aerobot.models import train_nonlinear, train_logistic, evaluate 
+from aerobot.models import evaluate, Nonlinear, GeneralClassifier
+from sklearn.linear_model import LogisticRegression
 from typing import Dict
 import numpy as np 
 import pandas as pd
@@ -52,7 +53,7 @@ def print_taxonomy_info(level:str='Class', feature_type:str='KO'):
     print(f'Number of unclassified entries:', n_unclassified)
 
 
-def phylogenetic_cross_validation(dataset:Dict[str, pd.DataFrame], n_splits:int=5, level:str='Class', model_class:str='nonlinear', params:Dict={}) -> Dict:
+def phylogenetic_cross_validation(dataset:Dict[str, pd.DataFrame], n_splits:int=5, level:str='Class', model_class:str='nonlinear', params:Dict={}, binary:bool=False) -> Dict:
     '''Perform cross-validation using holdout sets partitioned according to the specified taxonomic level. For example, if the 
     specified level is 'Class', then the closest relative to any member of the holdout set will be an organism in the same phylum. If 
     the level is 'Family', then the closest relative to any member of the holdout set will be an organism in the same order... etc.
@@ -76,12 +77,19 @@ def phylogenetic_cross_validation(dataset:Dict[str, pd.DataFrame], n_splits:int=
     scores = []
 
     for train_idxs, test_idxs in group_kfold.split(X, y, groups=groups):
-        group_name = groups[test_idxs[0]]
+        # group_name = groups[test_idxs[0]]
 
         if model_class == 'nonlinear':
-            model = train_nonlinear(X[train_idxs], y[train_idxs], X_val=X[test_idxs], y_val=y[test_idxs], params=params)
-        if model_class == 'logistic':
-            model = train_logistic(X[train_idxs], y[test_idxs])
+            # params.update({'n_epochs':1})
+            params.update({'n_classes':3 if not binary else 2})
+            params.update({'input_dim':X.shape[-1]}) # Make sure input dimensions are included. 
+            model = GeneralClassifier(model_class=Nonlinear, params=params)
+            model.fit(X[train_idxs], y[train_idxs], X_val=X[test_idxs], y_val=y[test_idxs])
+        elif model_class == 'logistic':
+            params.update({'C':100, 'penalty':'l2', 'max_iter':10000})
+            model = GeneralClassifier(model_class=LogisticRegression, params=params)
+            model.fit(X[train_idxs], y[train_idxs])
+    
         # Evaluate the trained model on the holdout set.
         results = evaluate(model, X[train_idxs], y[train_idxs], X_val=X[test_idxs], y_val=y[test_idxs])
         scores.append(results['f1_score']) # Store the F1 score.
@@ -92,8 +100,8 @@ def phylogenetic_cross_validation(dataset:Dict[str, pd.DataFrame], n_splits:int=
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('model-class', choices=['nonlinear', 'logistic'], help='The type of model to train.')
-    parser.add_argument('--n-splits', '-n', default=5, type=int, help='The number of folds for K-fold cross validation.')
-    parser.add_argument('--feature-type', '-f', type=str, default='KO', choices=FEATURE_SUBTYPES + FEATURE_TYPES, help='The feature type on which to train.')
+    parser.add_argument('--n-splits', default=5, type=int, help='The number of folds for K-fold cross validation.')
+    parser.add_argument('--feature-type', type=str, default='KO', choices=FEATURE_SUBTYPES + FEATURE_TYPES, help='The feature type on which to train.')
     parser.add_argument('--out', '-o', default='phylo_bias_results.pkl', help='The location to which the pickled results will be written.')
     parser.add_argument('--output-format', default='pkl', choices=['pkl', 'json'], help='Format of the results file.')
     parser.add_argument('--binary', '-b', default=0, type=bool, help='Whether to train on the binary classification task. If False, then ternary classification is performed.')
@@ -109,7 +117,7 @@ if __name__ == '__main__':
     for level in levels:
         print(f'Performing phylogeny-based cross-validation with {level.lower()}-level holdout set.')
         # Retrieve the F1 scores for the level. 
-        scores = phylogenetic_cross_validation(dataset, level=level, model_class=getattr(args, 'model-class'), n_splits=args.n_splits)
+        scores = phylogenetic_cross_validation(dataset, level=level, model_class=getattr(args, 'model-class'), n_splits=args.n_splits, binary=args.binary)
         results[level]['std'] = np.std(scores)
         results[level]['err'] = np.std(scores) / np.sqrt(len(scores))
         results[level]['mean'] = np.mean(scores)

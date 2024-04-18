@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 import numpy as np 
 import pandas as pd
 import matplotlib.ticker as ticker
+import seaborn as sns
 from typing import Dict, NoReturn, List
 import os
 
@@ -91,7 +92,7 @@ def _format_barplot_axes(ax:plt.Axes, feature_types:List[str]=None, binary:bool=
 def plot_model_accuracy_barplot(results:Dict[str, Dict]=None, path:str=None) -> NoReturn:
 
     # Two bars per model, one for training accuracy and one for validation accuracy
-    fig, ax = plt.subplots(1, figsize=(7, 3))
+    fig, ax = plt.subplots(1, figsize=(9, 3))
 
     feature_types = list(results.keys())
     # Extract the final balanced accuracies on training and validation sets from the results dictionaries. 
@@ -125,13 +126,13 @@ def plot_model_accuracy_barplot(results:Dict[str, Dict]=None, path:str=None) -> 
 
 def plot_model_comparison_barplot(nonlinear_results:Dict[str, Dict], logistic_results:Dict[str, Dict], path:str=None) -> NoReturn:
 
-    fig, ax = plt.subplots(1, figsize=(7, 3))
+    fig, ax = plt.subplots(1, figsize=(9, 3))
 
     feature_types = list(nonlinear_results.keys())
     for feature_type in feature_types:
         assert feature_type in logistic_results, f'plot_nonlinear_logistic_comparison_barplot: {feature_type} is missing in the logistic regression results.'
     
-    # Extract the final balanced accuracies on training and validation sets from the results dictionaries. 
+    # Extract the final balanced accuracies on from the results dictionaries. 
     nonlinear_val_accs  = [nonlinear_results[feature_type]['validation_acc'] for feature_type in feature_types]
     logistic_val_accs  = [logistic_results[feature_type]['validation_acc'] for feature_type in feature_types]
     binary = nonlinear_results[feature_types[0]]['binary'] # Assume all have the same value, but might want to add a check.
@@ -154,3 +155,42 @@ def plot_model_comparison_barplot(nonlinear_results:Dict[str, Dict], logistic_re
         plt.close()  # Prevent figure from being displayed in notebook.
     else:
         plt.show()
+
+
+def plot_confusion_matrices(results:Dict[str, Dict], path:str=None) -> NoReturn:
+
+    feature_types = list(results.keys())
+    binary = results[feature_types[0]]['binary'] # Assume all have the same value, but might want to add a check.
+    classes = results[feature_types[0]]['classes'] # This should also be the same for each feature type. 
+
+    # Extract the confusion matrices, which are flattened lists and need to be reshaped. 
+    dim = 2 if binary else 3 # Dimension of the confusion matrix.
+    confusion_matrices = [results[feature_type]['confusion_matrix'] for feature_type in feature_types]
+    confusion_matrices = [np.array(confusion_matrix).reshape(dim, dim) for confusion_matrix in confusion_matrices]
+    
+    # Initialize a figure with one axis for each feature type. These will all share a y axis.
+    fig, axes = plt.subplots(ncols=len(feature_types), figsize=(10, 3), sharey=True, sharex=False)
+    axes = axes.flatten()
+    plt.ylabel('true label') # Only need to share once if they share a y-axis.
+
+    for feature_type, confusion_matrix, ax in zip(feature_types, confusion_matrices, axes):
+        confusion_matrix = pd.DataFrame(confusion_matrix, columns=classes, index=classes)
+        confusion_matrix = confusion_matrix.apply(lambda x: x/x.sum(), axis=1) # Normalize the matrix.
+        ax.set_xlabel('predicted label')
+        ax.set_title(PRETTY_NAMES[feature_type], loc='center')
+        sns.heatmap(confusion_matrix, ax=ax, cmap='Blues', annot=True, fmt='.1%', cbar=False)
+        # Rotate the tick labels on the x-axis of each subplot.
+        ax.set_xticks(np.arange(len(classes)) + 0.5, classes, rotation=45)
+    
+    axes[0].set_yticks(np.arange(len(classes)) + 0.5, classes, rotation=0)
+
+    plt.tight_layout()
+    if path is not None:
+        plt.savefig(path, dpi=500, format='PNG', bbox_inches='tight')
+        plt.close()  # Prevent figure from being displayed in notebook.
+    else:
+        plt.show()
+
+
+def plot_phylo_bias(results:Dict[str, Dict]) -> NoReturn:
+    pass

@@ -7,6 +7,7 @@ import wget
 from typing import Dict, NoReturn, Tuple
 import json
 import argparse
+import pickle
 
 CWD, _ = os.path.split(os.path.abspath(__file__))
 ASSET_PATH = os.path.join(CWD, 'assets')
@@ -94,7 +95,6 @@ def load_results_dict(path:str) -> Dict:
         with open(path, 'rb') as f:
             results = pickle.load(f)
     return results
-
 
 
 def save_hdf(datasets:Dict[str, pd.DataFrame], path:str)-> NoReturn:
