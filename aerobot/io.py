@@ -62,7 +62,11 @@ def read_params(args:argparse.ArgumentParser, model_class:str='nonlinear') -> Di
     nonlinear_param_options = ['weight_decay', 'n_epochs', 'hidden_dim', 'alpha', 'lr', 'batch_size', 'early_stopping']
     logistic_param_options = ['C', 'penalty', 'max_iter']
     param_options = nonlinear_param_options if model_class == 'nonlinear' else logistic_param_options
-    return {param:getattr(args, param) for param in param_options}
+    params = {param:getattr(args, param) for param in param_options}
+    if model_class == 'nonlinear':
+        # Need to specify the number of classes for Nonlinear, as this is the dimension of the output layer.
+        params.update({'n_classes':3 if not binary else 2})
+    return params
 
 
 def save_results_dict(results:Dict, path:str, fmt:str='json') -> NoReturn:

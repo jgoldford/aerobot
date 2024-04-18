@@ -1,4 +1,5 @@
-'''A wrapper for the run_model.py script for training and evaluating multiple models on the HPC.'''
+'''A wrapper for running scripts (phylo_bias.py or run.py) on each feature type and model class. This should be run on the HPC,
+which has slurm installed.'''
 
 import subprocess
 from aerobot.io import FEATURE_TYPES
@@ -8,10 +9,12 @@ import os
 
 
 if __name__ == '__main__':
+    # Make sure the conda environment is activated.
+    subprocess.run('conda activate aerobot', check=True, shell=True)
 
     # Get the path within aerobot where all the Python scripts are stored. 
     SCRIPTS_PATH, _ = os.path.split(os.path.abspath(__file__))
-    RUN = os.path.join(SCRIPTS_PATH, 'run.py')
+    SCRIPT = os.path.join(SCRIPTS_PATH, 'run.py')
     OUTPUT_DIR = '~'
     OUTPUT_FORMAT = 'json'
     TIME = '02:00:00' # Time for slurm job. 

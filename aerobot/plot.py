@@ -192,5 +192,24 @@ def plot_confusion_matrices(results:Dict[str, Dict], path:str=None) -> NoReturn:
         plt.show()
 
 
-def plot_phylo_bias(results:Dict[str, Dict]) -> NoReturn:
-    pass
+def plot_phylo_bias(results:Dict[str, Dict], feature_type:str='KO', path:str=None) -> NoReturn:
+    
+    levels = ['Phylum', 'Class', 'Order', 'Family', 'Genus', 'Species'][::-1]
+    means = [results[level]['mean'] for level in levels] # Extract the mean F1 scores.
+    errs = [results[level]['err'] for level in levels] # Extract the standard errors. 
+
+    fig, ax = plt.subplots(figsize=(5, 3))
+
+    ax.errorbar(np.arange(1, len(levels) + 1), means, yerr=errs, ecolor=COLORS[0], capsize=3)
+    ax.set_ylabel('F1 score')
+    ax.set_ylim(0, 1)
+    ax.set_xticks(np.arange(1, len(levels) + 1), labels=levels)
+    ax.set_xlabel('holdout level')
+    ax.set_title(f'Phylogenetic bias analysis for {PRETTY_NAMES[feature_type]}')
+
+    plt.tight_layout()
+    if path is not None:
+        plt.savefig(path, dpi=500, format='PNG', bbox_inches='tight')
+        plt.close()  # Prevent figure from being displayed in notebook.
+    else:
+        plt.show()
