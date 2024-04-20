@@ -84,7 +84,8 @@ def phylogenetic_cross_validation(dataset:Dict[str, pd.DataFrame], n_splits:int=
     
         # Evaluate the trained model on the holdout set.
         results = evaluate(model, X[train_idxs], y[train_idxs], X_val=X[test_idxs], y_val=y[test_idxs])
-        scores.append(results['f1_score']) # Store the F1 score.
+        # scores.append(results['f1_score']) # Store the F1 score.
+        scores.append(results['validation_acc']) # Store the balanced accuracy.
 
     return scores
 
@@ -126,6 +127,7 @@ if __name__ == '__main__':
         scores[level]['std'] = np.std(level_scores)
         scores[level]['err'] = np.std(level_scores) / np.sqrt(len(level_scores))
         scores[level]['mean'] = np.mean(level_scores)
+        scores[level]['scores'] = level_scores
 
     results = {'scores':scores}
     # Add other relevant information to the results dictionary.
