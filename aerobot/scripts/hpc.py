@@ -18,7 +18,7 @@ if __name__ == '__main__':
 
     for model_class in ['logistic', 'nonlinear']:
         for feature_type in FEATURE_TYPES:
-            output_filename = f'run_results_{model_class}_{feature_type}.' + OUTPUT_FORMAT
+            output_filename = f'run_results_{model_class}_{feature_type}.json'
             output_path = os.path.join(OUTPUT_DIR, output_filename)
             cmd = f'python {SCRIPT} {model_class} --feature-type {feature_type} -o {output_path}'
             # Submit the slurm job. 
