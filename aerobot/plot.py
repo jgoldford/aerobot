@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 import matplotlib as mpl
 import numpy as np 
 import pandas as pd
-from aerobot.io import FEATURE_TYPES, FEATURE_SUBTYPES
+from aerobot.io import FEATURE_TYPES, FEATURE_SUBTYPES, RESULTS_PATH, load_results_dict
 import matplotlib.ticker as ticker
 import seaborn as sns
 from typing import Dict, NoReturn, List
@@ -202,26 +202,25 @@ def plot_confusion_matrices(results:Dict[str, Dict], path:str=None) -> NoReturn:
         plt.show()
 
 
-def plot_phylo_bias(results:Dict[str, Dict], feature_type:str='KO', path:str=None) -> NoReturn:
+def plot_phylo_bias(results:Dict[str, Dict], feature_type:str='KO', show_points:bool=False, path:str=None) -> NoReturn:
     '''Plots the results of a single run of phlogenetic bias analysis''' 
     
     levels = ['Phylum', 'Class', 'Order', 'Family', 'Genus', 'Species'][::-1]
-
     fig, ax = plt.subplots(figsize=(5, 3))
 
-    def _plot(results:Dict, color:str=None, linestyle='-'):
-            # Plot the error bar, as well as scatter points for each level. 
-            means = [results['scores'][level]['mean'] for level in levels] # Extract the mean F1 scores.
-            errs = [results['scores'][level]['err'] for level in levels] # Extract the standard errors. 
-            level_scores = [results['scores'][level]['scores'] for level in levels] # Extract the raw scores for each level. 
-            # Convert the scores to points for a scatter plot. 
-            scores_x = np.ravel([np.repeat(i + 1, len(s)) for i, s in enumerate(level_scores)])
-            scores_y = np.ravel(level_scores)
-            ax.errorbar(np.arange(1, len(levels) + 1), means, yerr=errs, c=color, capsize=3)
+    # Load in results for the baselines. 
+    randrel_results, meanrel_results = None, None
+    if 'phylo_bias_results_randrel.json' in os.listdir(RESULTS_PATH):
+        randrel_results = load_results_dict(os.path.join(RESULTS_PATH, 'phylo_bias_results_randrel.json'))
+    if 'phylo_bias_results_meanrel.json' in os.listdir(RESULTS_PATH):
+        meanrel_results = load_results_dict(os.path.join(RESULTS_PATH, 'phylo_bias_results_meanrel.json'))
 
-            if show_points: # Only show the points if specified.
-                ax.scatter(scores_x, scores_y, color=color)
-    for results in [nonlinear_results, logistic_results]:
+    colors = ['gray', 'black', 'tab:blue']
+    linestyles = ['--', '--', '-']
+    labels = ['MeanRelative', 'RandomRelative', None if results is None else results['model_class'].capitalize()]
+    legend = []
+
+    for i, results in enumerate([meanrel_results, randrel_results, results]):
         if results is not None:
             # Plot the error bar, as well as scatter points for each level. 
             means = [results['scores'][level]['mean'] for level in levels] # Extract the mean F1 scores.
@@ -231,15 +230,19 @@ def plot_phylo_bias(results:Dict[str, Dict], feature_type:str='KO', path:str=Non
             scores_x = np.ravel([np.repeat(i + 1, len(s)) for i, s in enumerate(level_scores)])
             scores_y = np.ravel(level_scores)
 
-            color = COLORS[1] if results['model_class'] == 'nonlinear' else COLORS[2]
-            ax.errorbar(np.arange(1, len(levels) + 1), means, yerr=errs, c=color, capsize=3)
-            ax.scatter(scores_x, scores_y, color=color)
+            ax.errorbar(np.arange(1, len(levels) + 1), means, yerr=errs, c=colors[i], linestyle=linestyles[i], capsize=3)
+        
+            if show_points: # Only show the points if specified.
+                ax.scatter(scores_x, scores_y, color=colors[i], s=3)
+            
+            legend.append(labels[i])
 
     ax.set_ylabel('balanced accuracy')
     ax.set_ylim(0, 1)
     ax.set_xticks(np.arange(1, len(levels) + 1), labels=levels)
     ax.set_xlabel('holdout level')
     ax.set_title(f'Phylogenetic bias analysis for {PRETTY_NAMES[feature_type]}')
+    ax.legend(legend)
 
     plt.tight_layout()
     if path is not None:

@@ -195,7 +195,7 @@ class RandomRelative():
 
     def predict(self, X:np.ndarray):
         # Get the taxonomy label at self.level for each genome ID in X.
-        tax = self.tax_data.loc[X, self.level].values
+        tax = self.tax_data.loc[X.ravel(), self.level].values
         y_pred = []
         for t in tax:
             relatives = self.tax_data[self.tax_data[self.level] == t] # Get all relatives at the specified level.

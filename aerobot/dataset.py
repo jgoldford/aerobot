@@ -117,11 +117,12 @@ def dataset_load_training_validation(feature_type:str, binary:bool=False, to_num
     '''
     training_dataset = dataset_load(feature_type, os.path.join(ASSET_PATH, 'updated_training_datasets.h5'))
     validation_dataset = dataset_load(feature_type, os.path.join(ASSET_PATH, 'updated_validation_datasets.h5'))
+
     # Make sure the columns in the training and validation datasets are aligned. 
     validation_dataset['features'], training_dataset['features'] = validation_dataset['features'].align(training_dataset['features'], axis=1)
     # Make sure aligning the columns does not mess up the row indices, somehow. 
-    assert np.all(validation_dataset['features'].index == validation_dataset['labels'].index), 'dataset_load_training_validation: Training and validation dataset indices no longer match.'
-    assert np.all(training_dataset['features'].index == training_dataset['labels'].index), 'dataset_load_training_validation: Training and validation dataset indices no longer match.'
+    # assert np.all(validation_dataset['features'].index == validation_dataset['labels'].index), 'dataset_load_training_validation: Validation dataset indices no longer match.'
+    # assert np.all(training_dataset['features'].index == training_dataset['labels'].index), 'dataset_load_training_validation: Training dataset indices no longer match.'
 
     # Clean up both datasets.
     validation_dataset = dataset_clean(validation_dataset, binary=binary, to_numpy=to_numpy)

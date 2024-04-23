@@ -13,14 +13,13 @@ if __name__ == '__main__':
     SCRIPTS_PATH, _ = os.path.split(os.path.abspath(__file__))
     SCRIPT = os.path.join(SCRIPTS_PATH, 'phylo-bias.py')
     OUTPUT_DIR = '~'
-    OUTPUT_FORMAT = 'json'
-    TIME = '02:00:00' # Time for slurm job. 
+    TIME = '10:00:00' # Time for slurm job. 
     MEM = '20GB' # Memory for slurm job. 
 
     for model_class in ['logistic', 'nonlinear']:
         for feature_type in FEATURE_TYPES:
             output_filename = f'run_results_{model_class}_{feature_type}.' + OUTPUT_FORMAT
             output_path = os.path.join(OUTPUT_DIR, output_filename)
-            cmd = f'python {SCRIPT} {model_class} --feature-type {feature_type} --output-format {OUTPUT_FORMAT} -o {output_path}'
+            cmd = f'python {SCRIPT} {model_class} --feature-type {feature_type} -o {output_path}'
             # Submit the slurm job. 
             subprocess.run(f'sbatch --wrap "{cmd}" -N 1 --time {TIME} --mem {MEM}', check=True, shell=True)
