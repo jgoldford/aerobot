@@ -58,14 +58,17 @@ def read_params(args:argparse.ArgumentParser, model_class:str='nonlinear') -> Di
     :param model_class: The type of model which the parameters will be passed into. One of 'logistic', 'nonlinear'.
     :return
     '''
-    # Determine which parameters to look for in the args, depending on the specified model class. 
-    nonlinear_param_options = ['weight_decay', 'n_epochs', 'hidden_dim', 'alpha', 'lr', 'batch_size', 'early_stopping']
-    logistic_param_options = ['C', 'penalty', 'max_iter']
-    param_options = nonlinear_param_options if model_class == 'nonlinear' else logistic_param_options
-    params = {param:getattr(args, param) for param in param_options}
-    if model_class == 'nonlinear':
+    params = dict()
+    # Determine which parameters to look for in the args, depending on the specified model class.
+    if model_class == 'nonlinear': 
+        param_options = ['weight_decay', 'n_epochs', 'hidden_dim', 'alpha', 'lr', 'batch_size', 'early_stopping']
+        params.update({param:getattr(args, param) for param in param_options})
         # Need to specify the number of classes for Nonlinear, as this is the dimension of the output layer.
         params.update({'n_classes':3 if not args.binary else 2})
+    elif model_class == 'logisic':
+        param_options = ['C', 'penalty', 'max_iter']
+        params.update({param:getattr(args, param) for param in param_options})
+    # If not logistic or nonlinear, as in the case of randrel and meanrel, params is an empty dictionary.
     return params
 
 
@@ -120,10 +123,11 @@ def load_hdf(path:str, feature_type:str) -> Dict[str, pd.DataFrame]:
     :return: A dictionary mapping strings to pandas DataFrames. Dictionary keys should be 'feature', which
         maps to the feature DataFrame, and 'labels', which maps to the labels DataFrame.
     '''
-    output = dict()
-    output['features'] = pd.read_hdf(path, key=feature_type)
-    output['labels'] = pd.read_hdf(path, key='labels')
-    return output
+    dataset = dict()
+    # feature_type can be None, which is used when working with MeanRelative and RandRelative models. 
+    dataset['features'] = None if feature_type is None else pd.read_hdf(path, key=feature_type)
+    dataset['labels'] = pd.read_hdf(path, key='labels')
+    return dataset
 
 
 

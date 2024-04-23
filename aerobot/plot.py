@@ -1,8 +1,10 @@
 '''Code for generating figures from model outputs. Functions are designed to interface with results dictionaries, which are given as 
 output by model training and evaluation scripts.'''
 import matplotlib.pyplot as plt
+import matplotlib as mpl
 import numpy as np 
 import pandas as pd
+from aerobot.io import FEATURE_TYPES, FEATURE_SUBTYPES
 import matplotlib.ticker as ticker
 import seaborn as sns
 from typing import Dict, NoReturn, List
@@ -10,18 +12,26 @@ import os
 
 # TODO: Work this in to the io.py module. Also add other feature types. 
 PRETTY_NAMES = {'KO':'All gene families', 'embedding.geneset.oxygen':'Five-gene set', 'chemical':'Chemical features', 'aa_1mer':'Amino acid counts', 'aa_3mer':'Amino acid trimers'}
+PRETTY_NAMES.update({'embedding.genome':'Genome embedding', 'metadata':'Metadata'})
+PRETTY_NAMES.update({f'nt_{i}mer':f'Nucleotide {i}-mer' for i in range(1, 6)})
+PRETTY_NAMES.update({f'cds_{i}mer':f'CDS {i}-mer' for i in range(1, 6)})
+PRETTY_NAMES.update({f'aa_{i}mer':f'Amino acid {i}-mer' for i in range(2, 3)})
+
 
 # Some specs to make plots look nice. 
 TITLE_FONT_SIZE, LABEL_FONT_SIZE = 12, 10
 FIGSIZE = (4, 3)
-PALETTE = 'Set1'
+PALETTE = 'Paired'
 # Set all matplotlib global parameters.
 plt.rc('font', **{'family':'sans-serif', 'sans-serif':['Arial'], 'size':LABEL_FONT_SIZE})
 plt.rc('xtick', **{'labelsize':LABEL_FONT_SIZE})
 plt.rc('ytick', **{'labelsize':LABEL_FONT_SIZE})
 plt.rc('axes',  **{'titlesize':TITLE_FONT_SIZE, 'labelsize':LABEL_FONT_SIZE})
+# plt.rcParams['image.cmap'] = 'Paired'
+# plt.rcParams['axes.prop_cycle'] = plt.cycler(color=plt.cm.Paired.colors)
 
-COLORS = ['tab:gray', 'tab:green', 'tab:blue']
+CMAP = mpl.colormaps['GnBu']
+COLORS = ['tab:gray', 'tab:green', 'tab:blue', 'tab:olive', 'tab:cyan', 'tab:brown']
 
 # TODO: Update this for all feature types. 
 ANNOTATED = ['KO', 'embedding.geneset.oxygen'] 
@@ -193,15 +203,39 @@ def plot_confusion_matrices(results:Dict[str, Dict], path:str=None) -> NoReturn:
 
 
 def plot_phylo_bias(results:Dict[str, Dict], feature_type:str='KO', path:str=None) -> NoReturn:
+    '''Plots the results of a single run of phlogenetic bias analysis''' 
     
     levels = ['Phylum', 'Class', 'Order', 'Family', 'Genus', 'Species'][::-1]
-    means = [results[level]['mean'] for level in levels] # Extract the mean F1 scores.
-    errs = [results[level]['err'] for level in levels] # Extract the standard errors. 
 
     fig, ax = plt.subplots(figsize=(5, 3))
 
-    ax.errorbar(np.arange(1, len(levels) + 1), means, yerr=errs, ecolor=COLORS[0], capsize=3)
-    ax.set_ylabel('F1 score')
+    def _plot(results:Dict, color:str=None, linestyle='-'):
+            # Plot the error bar, as well as scatter points for each level. 
+            means = [results['scores'][level]['mean'] for level in levels] # Extract the mean F1 scores.
+            errs = [results['scores'][level]['err'] for level in levels] # Extract the standard errors. 
+            level_scores = [results['scores'][level]['scores'] for level in levels] # Extract the raw scores for each level. 
+            # Convert the scores to points for a scatter plot. 
+            scores_x = np.ravel([np.repeat(i + 1, len(s)) for i, s in enumerate(level_scores)])
+            scores_y = np.ravel(level_scores)
+            ax.errorbar(np.arange(1, len(levels) + 1), means, yerr=errs, c=color, capsize=3)
+
+            if show_points: # Only show the points if specified.
+                ax.scatter(scores_x, scores_y, color=color)
+    for results in [nonlinear_results, logistic_results]:
+        if results is not None:
+            # Plot the error bar, as well as scatter points for each level. 
+            means = [results['scores'][level]['mean'] for level in levels] # Extract the mean F1 scores.
+            errs = [results['scores'][level]['err'] for level in levels] # Extract the standard errors. 
+            level_scores = [results['scores'][level]['scores'] for level in levels] # Extract the raw scores for each level. 
+            # Convert the scores to points for a scatter plot. 
+            scores_x = np.ravel([np.repeat(i + 1, len(s)) for i, s in enumerate(level_scores)])
+            scores_y = np.ravel(level_scores)
+
+            color = COLORS[1] if results['model_class'] == 'nonlinear' else COLORS[2]
+            ax.errorbar(np.arange(1, len(levels) + 1), means, yerr=errs, c=color, capsize=3)
+            ax.scatter(scores_x, scores_y, color=color)
+
+    ax.set_ylabel('balanced accuracy')
     ax.set_ylim(0, 1)
     ax.set_xticks(np.arange(1, len(levels) + 1), labels=levels)
     ax.set_xlabel('holdout level')
@@ -213,3 +247,59 @@ def plot_phylo_bias(results:Dict[str, Dict], feature_type:str='KO', path:str=Non
         plt.close()  # Prevent figure from being displayed in notebook.
     else:
         plt.show()
+
+# def plot_phylo_bias(
+#     nonlinear_results:Dict[str, Dict[str, Dict]]=None, 
+#     logistic_results:Dict[str, Dict[str, Dict]]=None, 
+#     meanrel_results:Dict[str, Dict]=None,
+#     path:str=None, 
+#     show_points:bool=False) -> NoReturn:
+    
+#     levels = ['Phylum', 'Class', 'Order', 'Family', 'Genus', 'Species'][::-1]
+#     fig, ax = plt.subplots(figsize=(15, 6))
+#     # Get a set of all feature types present in both input dictionaries. 
+#     colors = CMAP(np.linspace(0.2, 1, len(FEATURE_TYPES)))
+#     legend = []
+
+#     def _plot(results:Dict, color:str=None, linestyle='-'):
+#             # Plot the error bar, as well as scatter points for each level. 
+#             means = [results['scores'][level]['mean'] for level in levels] # Extract the mean F1 scores.
+#             errs = [results['scores'][level]['err'] for level in levels] # Extract the standard errors. 
+#             level_scores = [results['scores'][level]['scores'] for level in levels] # Extract the raw scores for each level. 
+#             # Convert the scores to points for a scatter plot. 
+#             scores_x = np.ravel([np.repeat(i + 1, len(s)) for i, s in enumerate(level_scores)])
+#             scores_y = np.ravel(level_scores)
+#             ax.errorbar(np.arange(1, len(levels) + 1), means, yerr=errs, c=color, capsize=3)
+
+#             if show_points: # Only show the points if specified.
+#                 ax.scatter(scores_x, scores_y, color=color)
+
+#     for feature_type, color in zip(FEATURE_TYPES, colors):
+#         if (nonlinear_results is not None) and (feature_type in nonlinear_results):
+#             results = nonlinear_results[feature_type]
+#             _plot(results, color=color, linestyle='-')
+#             legend.append(f'{PRETTY_NAMES[feature_type]} (nonlinear)')
+        
+#         if (logistic_results is not None) and (feature_type in logistic_results):
+#             results = logistic_results[feature_type]
+#             _plot(results, color=color, linestyle='--')
+#             legend.append(f'{PRETTY_NAMES[feature_type]} (logistic)')
+
+#     if (meanrel_results is not None):
+#         _plot(meanrel_results, color='black', linestyle='--')
+
+#     ax.legend(legend, bbox_to_anchor=(1.3, 1))
+#     ax.set_ylabel('balanced accuracy')
+#     ax.set_ylim(0, 1)
+#     ax.set_xticks(np.arange(1, len(levels) + 1), labels=levels)
+#     ax.set_xlabel('holdout level')
+#     ax.set_title(f'Phylogenetic bias analysis')
+
+#     plt.tight_layout()
+#     if path is not None:
+#         plt.savefig(path, dpi=500, format='PNG', bbox_inches='tight')
+#         plt.close()  # Prevent figure from being displayed in notebook.
+#     else:
+#         plt.show()
+
+

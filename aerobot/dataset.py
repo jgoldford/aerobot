@@ -40,11 +40,8 @@ def dataset_to_numpy(dataset:Dict[str, pd.DataFrame]) -> Dict[str, np.ndarray]:
         The labels array is one dimensional and of length n, and is of type np.object_.
     '''
     numpy_dataset = dict() # Create a new dataset.
-    # Explicitly converting to floats should catch any weirdness with index labels ending up in the result.
-    numpy_dataset['features'] = dataset['features'].values.astype(np.float32)
-    # Extract the physiology labels, converting them to numpy arrays. 
+    numpy_dataset['features'] = dataset['features'].values # .astype(np.float32)
     numpy_dataset['labels'] = dataset['labels'].physiology.values
-
     return numpy_dataset
 
 
@@ -65,29 +62,32 @@ def dataset_clean(dataset:Dict[str, pd.DataFrame], to_numpy:bool=True, binary:bo
     label_map = binary_label_map if binary else ternary_label_map
     
     dataset['labels'].physiology = dataset['labels'].physiology.replace(label_map) # Format the labels.
-    dataset['features'] = dataset['features'].dropna(axis=1) # Drop columns which contain NaNs the dataset. 
-    dataset = dataset_align(dataset) # Align the features and labels indices.
-    
-    if to_numpy: # If specified, convert the features and labels to numpy arrays. 
-        dataset = dataset_to_numpy(dataset)
 
-    return dataset
+    if dataset['features'] is not None:
+        dataset['features'] = dataset['features'].dropna(axis=1) # Drop columns which contain NaNs the dataset. 
+        dataset = dataset_align(dataset) # Align the features and labels indices.
+
+    return dataset_to_numpy(dataset) if to_numpy else dataset
 
 
-def dataset_load(feature_type:str, path:str):
+def dataset_load(feature_type:str, path:str) -> Dict:
     '''Load a dataset for a particular feature type from the specified path.
     
-    :param feature_type: Feature type to load from the HDF file
+    :param feature_type: Feature type to load from the HDF file. If None, genome IDs are used 
+        as the feature type (for working with MeanRelative and RandRelative classifiers).
     :param path: Path to the HDF dataset to load. 
+    :return: A dictionary with keys 'features' and 'labels' containing the feature data and metadata.
     '''
-    assert feature_type in FEATURE_TYPES + FEATURE_SUBTYPES, f'dataset_load: Input feature type {feature_type} is invalid.'
     subtype = None
-    # Special case if the feature_type is a "subtype", which is stored as a column in the metadata.
-    if feature_type in FEATURE_SUBTYPES:
-        feature_type, subtype = feature_type.split('.')
-    
+    assert feature_type in FEATURE_TYPES + FEATURE_SUBTYPES + [None], f'dataset_load: Input feature type {feature_type} is invalid.'
+    if feature_type is not None:
+        # Special case if the feature_type is a "subtype", which is stored as a column in the metadata.
+        if feature_type in FEATURE_SUBTYPES:
+            feature_type, subtype = feature_type.split('.')
+        
     dataset = load_hdf(path, feature_type=feature_type) # Read from the HDF file.
-    
+    if dataset['features'] is None:
+        dataset['features'] = pd.DataFrame({'genome_id':dataset['labels'].index}, index=dataset['labels'].index)
     if subtype is not None: # If a feature subtype is given, extract the information from the metadata.
         dataset['features'] = dataset['features'][[subtype]]
 
@@ -115,11 +115,13 @@ def dataset_load_training_validation(feature_type:str, binary:bool=False, to_num
     :param to_numpy: Whether or not to convert the feature sets to numpy ndarrays for model compatibility.
     :return: A 2-tuple of dictionaries with the cleaned-up training and validation datasets as numpy arrays.
     '''
-    # Read in both datasets.
     training_dataset = dataset_load(feature_type, os.path.join(ASSET_PATH, 'updated_training_datasets.h5'))
     validation_dataset = dataset_load(feature_type, os.path.join(ASSET_PATH, 'updated_validation_datasets.h5'))
-    # Make sure the columns in the training and validation datasets are aligned.
+    # Make sure the columns in the training and validation datasets are aligned. 
     validation_dataset['features'], training_dataset['features'] = validation_dataset['features'].align(training_dataset['features'], axis=1)
+    # Make sure aligning the columns does not mess up the row indices, somehow. 
+    assert np.all(validation_dataset['features'].index == validation_dataset['labels'].index), 'dataset_load_training_validation: Training and validation dataset indices no longer match.'
+    assert np.all(training_dataset['features'].index == training_dataset['labels'].index), 'dataset_load_training_validation: Training and validation dataset indices no longer match.'
 
     # Clean up both datasets.
     validation_dataset = dataset_clean(validation_dataset, binary=binary, to_numpy=to_numpy)
