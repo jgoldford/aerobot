@@ -103,8 +103,31 @@ def dataset_load_all(feature_type:str, binary:bool=False, to_numpy:bool=True) ->
     :return: A dictionary with the cleaned-up full dataset.
     '''
     dataset = dataset_load(feature_type, os.path.join(ASSET_PATH, 'updated_all_datasets.h5')) # Read in the dataset.
+    dataset['features'] = dataset['features'][dataset_load_feature_order(feature_type)] # Ensure the column ordering is consistent. 
     dataset = dataset_clean(dataset, binary=binary, to_numpy=to_numpy) # Clean up the dataset.
     return dataset
+
+
+def dataset_get_features(dataset:Dict[str, pd.DataFrame]) -> np.ndarray:
+    '''Extract the names of the columns in the features DataFrame for a given dataset.
+
+    :param dataset: A dictionary with two keys, 'features' and 'labels', each of which map to a pandas
+        DataFrame containing the feature and label data, respectively.
+    :return: A numpy array of features in the same order as the columns in the features DataFrame. 
+    '''
+    assert isinstance(dataset['features'], pd.DataFrame), 'dataset_get_features: Input dataset must contain DataFrames.'
+    features = dataset['features'].columns
+    return features.to_numpy()
+
+
+def dataset_load_feature_order(feature_type:str) -> np.ndarray:
+    '''Load the columns ordering for a particular feature type. This function returns columns ordered
+    in the same way as the training dataset, which is used as a reference throughout the project.
+
+    :param feature_type: The feature type for which to load data.
+    '''
+    dataset = dataset_load(feature_type, os.path.join(ASSET_PATH, 'updated_training_datasets.h5')) # Load the training dataset. 
+    return dataset_get_features(dataset)
 
 
 def dataset_load_training_validation(feature_type:str, binary:bool=False, to_numpy:bool=True) -> Tuple[Dict]:
@@ -119,10 +142,8 @@ def dataset_load_training_validation(feature_type:str, binary:bool=False, to_num
     validation_dataset = dataset_load(feature_type, os.path.join(ASSET_PATH, 'updated_validation_datasets.h5'))
 
     # Make sure the columns in the training and validation datasets are aligned. 
-    validation_dataset['features'], training_dataset['features'] = validation_dataset['features'].align(training_dataset['features'], axis=1)
-    # Make sure aligning the columns does not mess up the row indices, somehow. 
-    # assert np.all(validation_dataset['features'].index == validation_dataset['labels'].index), 'dataset_load_training_validation: Validation dataset indices no longer match.'
-    # assert np.all(training_dataset['features'].index == training_dataset['labels'].index), 'dataset_load_training_validation: Training dataset indices no longer match.'
+    validation_dataset['features'] = validation_dataset['features'][dataset_load_feature_order(feature_type)]
+    assert np.all(dataset_get_features(training_dataset) == dataset_get_features(validation_dataset)), 'dataset_load_training_validation: Column labels in training and validation datasets are not aligned.'
 
     # Clean up both datasets.
     validation_dataset = dataset_clean(validation_dataset, binary=binary, to_numpy=to_numpy)

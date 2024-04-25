@@ -311,7 +311,7 @@ class GeneralClassifier():
 
         :param path: The location where the object will be stored.
         '''
-        joblib.dump((self.classifier, self.scaler), filename)
+        joblib.dump((self.classifier, self.scaler), path)
 
     @classmethod
     def load(cls, path:str):
