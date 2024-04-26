@@ -31,17 +31,18 @@ if __name__ == '__main__':
     t1 = time.perf_counter()
 
     data_path = getattr(args, 'data-path')
-    data = pd.read_csv(data_path, index_col=0)
+    data = pd.read_csv(data_path, index_col=0) # Need to preserve the index, which in the case of EMB data is the ID.
     feature_order = dataset_load_feature_order(args.feature_type)
     # Make sure all required features are present in the input data. 
     assert np.all(np.isin(feature_order, data.columns.to_numpy())), 'There are some required features missing in the input data.'
     data = data[feature_order] # Ensure consistent ordering of the columns. 
 
     model = GeneralClassifier.load(getattr(args, 'model-path')) # Load the trained model. 
-    X = data.values # Extract the raw data from the input DataFrame. 
+    X = data.values # Extract the raw data from the input DataFrame.
+
     y_pred = model.predict(X)
 
-    results = pd.DataFrame()
+    results = pd.DataFrame(index=data.index)
     results['prediction'] = y_pred.ravel() # Ravel because Nonlinear output is a column vector. 
     
     print(f'\nWriting results to {args.out}.')
