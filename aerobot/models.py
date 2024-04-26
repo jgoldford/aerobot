@@ -9,6 +9,8 @@ from tqdm import tqdm
 from typing import Tuple, NoReturn, List, Dict
 from sklearn.linear_model import LogisticRegression
 import pandas as pd
+import inspect
+
 
 # Use a GPU if one is available. 
 if torch.cuda.is_available():
@@ -48,6 +50,7 @@ class Nonlinear(torch.nn.Module):
         self.batch_size = batch_size
         self.input_dim = input_dim
         self.hidden_dim = hidden_dim
+        self.weight_decay = weight_decay
         self.classes_ = None # Will be populated later, for consistency with LogisticRegression model.
         self.n_classes = n_classes
         self.encoder = sklearn.preprocessing.OneHotEncoder(handle_unknown='error', sparse_output=False)
@@ -321,7 +324,13 @@ class GeneralClassifier():
         :return: A GeneralClassifier instance.
         '''
         classifier, scaler = joblib.load(path)
-        instance = cls(model_class=type(classifier))
+        # Need to pass keyword arguments for the Nonlinear classifier.
+        if isinstance(classifier, Nonlinear):
+            kwargs = ['input_dim', 'hidden_dim'] # Arguments required for initializer to not throw an error. 
+            params = {k:getattr(classifier, k) for k in kwargs}
+            instance = cls(model_class=type(classifier), params=params)
+        elif isinstance(classifier, LogisticRegression):
+            instance = cls(model_class=type(classifier))
         instance.classifier = classifier
         instance.scaler = scaler
         return instance

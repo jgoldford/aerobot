@@ -6,4 +6,4 @@ aerobot/assets/*.h5
 aerobot/assets/train/*.tar.gz
 **/.DS_Store
 aerobot/assets/validation/genomes/
-results/earth_microbiome/*
+results/earth_microbiome/emb*

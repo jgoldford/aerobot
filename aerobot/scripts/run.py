@@ -47,7 +47,7 @@ if __name__ == '__main__':
     # Optional parameters for LogisticRegression classifiers.
     parser.add_argument('--C', default=100, type=float, help='Inverse of regularization strength for the LogisticRegression classifier' ) 
     parser.add_argument('--penalty', default='l2', type=str, help='The norm of the penalty term for the LogisticRegression classifier.') 
-    parser.add_argument('--max-iter', default=10000, type=int, help='Maximum number of iterations for the LogisticRegression classifier.')
+    parser.add_argument('--max-iter', default=100000, type=int, help='Maximum number of iterations for the LogisticRegression classifier.')
     # Parameters for saving the model. 
     parser.add_argument('--save-model', default=False, type=bool, help='Whether or not to save the model.') 
     parser.add_argument('--save-model-path', default='model.joblib', type=str, help='Path to save the trained model.') 

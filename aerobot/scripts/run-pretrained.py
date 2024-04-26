@@ -22,7 +22,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('model-path', help='Path to the saved pre-trained model.')
     parser.add_argument('data-path', help='Path to the data on which to run the trained model. This should be in CSV format.')
-    parser.add_argument('--feature-type', type=str, default='KO', choices=FEATURE_SUBTYPES + FEATURE_TYPES, help='The feature type on which to train.')
+    parser.add_argument('--feature-type', type=str, default='aa_3mer', choices=FEATURE_SUBTYPES + FEATURE_TYPES, help='The feature type on which to train.')
     parser.add_argument('--out', '-o', default='run_pretrained_results.csv', help='The location to which the predictions will be written.')
 
 
@@ -42,7 +42,7 @@ if __name__ == '__main__':
     y_pred = model.predict(X)
 
     results = pd.DataFrame()
-    results['prediction'] = y_pred
+    results['prediction'] = y_pred.ravel() # Ravel because Nonlinear output is a column vector. 
     
     print(f'\nWriting results to {args.out}.')
     results.to_csv(args.out)
