@@ -133,8 +133,9 @@ def dataset_load_feature_order(feature_type:str, drop_x:bool=True) -> np.ndarray
     features = dataset_get_features(dataset)
     if 'aa_' in feature_type: # Remove all unknown amino acids from the feature set.
         features = np.array([f for f in features if 'X' not in f])
-    return 
+    return features
 
+print(dataset_load_feature_order('aa_3mer'))
 
 def dataset_load_training_validation(feature_type:str, binary:bool=False, to_numpy:bool=True, drop_x:bool=True) -> Tuple[Dict]:
     '''Load training and validation datasets for the specified feature type.
