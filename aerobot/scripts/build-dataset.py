@@ -14,14 +14,13 @@ import warnings
 warnings.filterwarnings('ignore', category=pd.io.pytables.PerformanceWarning)
 warnings.filterwarnings('ignore', category=tables.NaturalNameWarning)
 
-MAPS_PATH = os.path.join(os.path.split(os.path.abspath(__file__))[0], 'maps.csv')
-
 # TODO: Put the key and filename maps into a CSV file. 
 # TODO: Possibly add the code for reading and writing maps to the io.py file?
 
 
-def load_training_data(path:str=os.path.join(ASSET_PATH, 'train/training_data.h5'), feature_type:str='KO') -> Dict[str, pd.DataFrame]:
-    '''Load the training data for a specific feature from an HD5 file (specifically, the one downloaded). 
+def load_data_madin(path:str=os.path.join(ASSET_PATH, 'data/madin/madin_data.h5'), feature_type:str='ko') -> Dict[str, pd.DataFrame]:
+    '''Load the training data from Madin et. al. This data is stored in an H5 file, as it is too large to store in 
+    separate CSVs. 
 
     :param path: The path to the HD5 file containing the training data.
     :param feature_type: The feature type to load.
@@ -30,15 +29,12 @@ def load_training_data(path:str=os.path.join(ASSET_PATH, 'train/training_data.h5
     
     output = dict()
     output['labels'] = pd.read_hdf(path, key='labels')
-    # Create a map of  each feature type to a key in the HD5 file.
-    key_map = pd.read_csv(MAPS_PATH, usecols=['key', 'feature_type'], index_col='feature_type').to_dict()['key']
-
     if feature_type == 'chemical':
-        metadata_df = pd.read_hdf(path, key=key_map['metadata'])
-        nt1_df = pd.read_hdf(path, key=key_map['nt_1mer'])
-        aa1_df = pd.read_hdf(path, key=key_map['aa_1mer'])
-        cds1_df = pd.read_hdf(path, key=key_map['cds_1mer'])
-        features = chemical_get_features(metadata_df=metadata_df, aa1_df=aa1_df, nt1_df=nt1_df, cds1_df=cds1_df)
+        kwargs = dict()
+        for f in ['aa_1mer', 'cds_1mer', 'aa_1mer', 'metadata']:
+            df = pd.read_hdf(path, key='nt_1mer')
+            kwargs.update({f + '_df':df})
+        features = chemical_get_features(**kwargs)
     else:
         features = pd.read_hdf(path, key=key_map[feature_type])
     if feature_type == 'metadata': # NOTE: This is ported over from the build_datasets script.
@@ -140,9 +136,8 @@ def fill_missing_taxonomy(labels:pd.DataFrame) -> pd.DataFrame:
     return labels
 
 
-def load_validation_data(path:str=os.path.join(ASSET_PATH, 'validation/features/'), feature_type:str='KO') -> Dict[str, pd.DataFrame]:
-    '''Load the valudation data for a specific feature. Standardizes the index in the labels and features 
-    DataFrames for compatibility with the validation dataset.
+def load_jablonska_data(path:str=os.path.join(ASSET_PATH, 'data/jablonska/'), feature_type:str='KO') -> Dict[str, pd.DataFrame]:
+    '''Load the data from Jablonska et. al.
 
     :param path: The path to the directory containing the validation data files.
     :param feature_type: The feature type to load.
@@ -150,19 +145,15 @@ def load_validation_data(path:str=os.path.join(ASSET_PATH, 'validation/features/
     assert feature_type in FEATURE_TYPES, f'load_validation_data: feature_type must be one of {FEATURE_TYPES}'
     
     output = dict()
-    labels = pd.read_csv(os.path.join(ASSET_PATH, 'validation/labels/Jablonska_Labels.07Feb2023.csv'), index_col=0)
-    labels = labels.rename(columns={'Oder':'Order'}) # Fix a typo in one of the columns. 
+    labels = pd.read_csv(os.path.join(path, 'jablonska_labels.csv'), index_col=0).rename(columns={'Oder':'Order'}) # Fix a typo in one of the columns. 
     output['labels'] = labels # Add the DataFrame to the output. 
 
-    # Dictionary mapping each feature type to the file with the relevant data.
-    filename_map = pd.read_csv(MAPS_PATH, usecols=['filename', 'feature_type'], index_col='feature_type').to_dict()['filename']
-
     if feature_type == 'chemical':
-        metadata_df = pd.read_csv(os.path.join(path, filename_map['metadata']), index_col=0)
-        nt1_df = pd.read_csv(os.path.join(path, filename_map['nt_1mer']), index_col=0)
-        aa1_df = pd.read_csv(os.path.join(path, filename_map['aa_1mer']), index_col=0)
-        cds1_df = pd.read_csv(os.path.join(path, filename_map['cds_1mer']), index_col=0)
-        features = chemical_get_features(metadata_df=metadata_df, aa1_df=aa1_df, nt1_df=nt1_df, cds1_df=cds1_df)
+        kwargs = dict()
+        for f in ['aa_1mer', 'cds_1mer', 'aa_1mer', 'metadata']:
+            df = pd.read_csv(os.path.join(path, f'jablonska_{f}.csv'), index_col=0)
+            kwargs.update({f + '_df':df})
+        features = chemical_get_features(**kwargs)
     else:
         features = pd.read_csv(os.path.join(path, filename_map[feature_type]), index_col=0)
         # If the feature type is one of the following, fill 0 values with NaNs.
@@ -172,7 +163,6 @@ def load_validation_data(path:str=os.path.join(ASSET_PATH, 'validation/features/
             features.set_index('genome', inplace=True)
             # Calculate the percentage of oxygen genes for the combined dataset and and add it to the dataset
             features['pct_oxygen_genes'] = features['oxygen_genes'] / features['number_of_genes']
-        # TODO: Is this supposed to be different than with the training data? And it's only done with the feature DataFrame?
         if feature_type.startswith('nt_'):
             # Remove text after the '.' character in the index for nt feature types.
             features.index = [i.split('.')[0] for i in features.index]
@@ -229,7 +219,7 @@ def remove_duplicates(data:pd.DataFrame) -> Tuple[pd.DataFrame, np.ndarray, np.n
     return data[~duplicated].copy(), duplicate_ids, ids_to_remove
 
 
-def training_validation_split(all_datasets:Dict[str, pd.DataFrame], random_seed:int=91) -> Tuple[Dict[str, pd.DataFrame], Dict[str, pd.DataFrame]]:
+def training_validation_split(all_datasets:Dict[str, pd.DataFrame], random_seed:int=42) -> Tuple[Dict[str, pd.DataFrame], Dict[str, pd.DataFrame]]:
     '''Split concatenated feature dataset into training and validation sets using phylogeny.
     
     :param all_datasets: A dictionary mapping each feature type to the corresponding dataset.

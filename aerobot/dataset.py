@@ -94,16 +94,17 @@ def dataset_load(feature_type:str, path:str) -> Dict:
     return dataset
 
 
-def dataset_load_all(feature_type:str, binary:bool=False, to_numpy:bool=True) -> Dict:
+def dataset_load_all(feature_type:str, binary:bool=False, to_numpy:bool=True, drop_x:bool=True) -> Dict:
     '''Load the full dataset for the specified feature type.
 
     :param feature_type: The feature type for which to load data.
     :param binary: Whether or not to use the binary training labels. If False, the ternary labels are used.
     :param to_numpy: Whether or not to convert the feature sets to numpy ndarrays for model compatibility.
+    :param drop_x: Whether or not to drop the X amino acids when amino acid feature sets are being loaded.
     :return: A dictionary with the cleaned-up full dataset.
     '''
     dataset = dataset_load(feature_type, os.path.join(ASSET_PATH, 'updated_all_datasets.h5')) # Read in the dataset.
-    dataset['features'] = dataset['features'][dataset_load_feature_order(feature_type)] # Ensure the column ordering is consistent. 
+    dataset['features'] = dataset['features'][dataset_load_feature_order(feature_type, drop_x=drop_x)] # Ensure the column ordering is consistent. 
     dataset = dataset_clean(dataset, binary=binary, to_numpy=to_numpy) # Clean up the dataset.
     return dataset
 
@@ -120,29 +121,36 @@ def dataset_get_features(dataset:Dict[str, pd.DataFrame]) -> np.ndarray:
     return features.to_numpy()
 
 
-def dataset_load_feature_order(feature_type:str) -> np.ndarray:
+def dataset_load_feature_order(feature_type:str, drop_x:bool=True) -> np.ndarray:
     '''Load the columns ordering for a particular feature type. This function returns columns ordered
     in the same way as the training dataset, which is used as a reference throughout the project.
 
     :param feature_type: The feature type for which to load data.
+    :param drop_x: Whether or not to drop the X amino acids when amino acid feature sets are being loaded.
+    :return: A numpy array of features, which are the columns of the features DataFrame for the input feature type. 
     '''
     dataset = dataset_load(feature_type, os.path.join(ASSET_PATH, 'updated_training_datasets.h5')) # Load the training dataset. 
-    return dataset_get_features(dataset)
+    features = dataset_get_features(dataset)
+    if 'aa_' in feature_type: # Remove all unknown amino acids from the feature set.
+        features = np.array([f for f in features if 'X' not in f])
+    return 
 
 
-def dataset_load_training_validation(feature_type:str, binary:bool=False, to_numpy:bool=True) -> Tuple[Dict]:
+def dataset_load_training_validation(feature_type:str, binary:bool=False, to_numpy:bool=True, drop_x:bool=True) -> Tuple[Dict]:
     '''Load training and validation datasets for the specified feature type.
 
     :param feature_type: The feature type for which to load data.
     :param binary: Whether or not to use the binary training labels. If False, the ternary labels are used.
     :param to_numpy: Whether or not to convert the feature sets to numpy ndarrays for model compatibility.
+    :param drop_x: Whether or not to drop the X amino acids when amino acid feature sets are being loaded.
     :return: A 2-tuple of dictionaries with the cleaned-up training and validation datasets as numpy arrays.
     '''
     training_dataset = dataset_load(feature_type, os.path.join(ASSET_PATH, 'updated_training_datasets.h5'))
     validation_dataset = dataset_load(feature_type, os.path.join(ASSET_PATH, 'updated_validation_datasets.h5'))
 
     # Make sure the columns in the training and validation datasets are aligned. 
-    validation_dataset['features'] = validation_dataset['features'][dataset_load_feature_order(feature_type)]
+    validation_dataset['features'] = validation_dataset['features'][dataset_load_feature_order(feature_type, drop_x=drop_x)]
+    training_dataset['features'] = training_dataset['features'][dataset_load_feature_order(feature_type, drop_x=drop_x)]
     assert np.all(dataset_get_features(training_dataset) == dataset_get_features(validation_dataset)), 'dataset_load_training_validation: Column labels in training and validation datasets are not aligned.'
 
     # Clean up both datasets.

@@ -12,6 +12,8 @@ import argparse
 from typing import Dict, NoReturn
 import time
 import pickle
+from warnings import simplefilter
+simplefilter(action='ignore', category=pd.errors.PerformanceWarning)
 
 def check_args(args:argparse.ArgumentParser):
     # TODO
@@ -40,7 +42,7 @@ def clean_features(data:pd.DataFrame, feature_type:str='aa_3mer'):
 if __name__ == '__main__':
 
     parser = argparse.ArgumentParser()
-    parser.add_argument('model-path', help='Path to the saved pre-trained model.')in the case of EMB data
+    parser.add_argument('model-path', help='Path to the saved pre-trained model.')
     parser.add_argument('data-path', help='Path to the data on which to run the trained model. This should be in CSV format.')
     parser.add_argument('--feature-type', type=str, default='aa_3mer', choices=FEATURE_SUBTYPES + FEATURE_TYPES, help='The feature type on which to train.')
     parser.add_argument('--out', '-o', default='run_pretrained_results.csv', help='The location to which the predictions will be written.')
