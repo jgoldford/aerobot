@@ -18,18 +18,6 @@ PRETTY_NAMES.update({f'cds_{i}mer':f'CDS {i}-mer' for i in range(1, 6)})
 PRETTY_NAMES.update({f'aa_{i}mer':f'Amino acid {i}-mer' for i in range(2, 3)})
 
 
-# Some specs to make plots look nice. 
-TITLE_FONT_SIZE, LABEL_FONT_SIZE = 12, 10
-FIGSIZE = (4, 3)
-PALETTE = 'Paired'
-# Set all matplotlib global parameters.
-plt.rc('font', **{'family':'sans-serif', 'sans-serif':['Arial'], 'size':LABEL_FONT_SIZE})
-plt.rc('xtick', **{'labelsize':LABEL_FONT_SIZE})
-plt.rc('ytick', **{'labelsize':LABEL_FONT_SIZE})
-plt.rc('axes',  **{'titlesize':TITLE_FONT_SIZE, 'labelsize':LABEL_FONT_SIZE})
-# plt.rcParams['image.cmap'] = 'Paired'
-# plt.rcParams['axes.prop_cycle'] = plt.cycler(color=plt.cm.Paired.colors)
-
 CMAP = mpl.colormaps['GnBu']
 COLORS = ['tab:gray', 'tab:green', 'tab:blue', 'tab:olive', 'tab:cyan', 'tab:brown']
 
@@ -202,9 +190,10 @@ def plot_confusion_matrices(results:Dict[str, Dict], path:str=None) -> NoReturn:
         plt.show()
 
 
-def plot_phylo_bias(results:Dict[str, Dict], feature_type:str='KO', show_points:bool=False, path:str=None) -> NoReturn:
+def plot_phylo_bias(results:Dict[str, Dict], show_points:bool=False, path:str=None) -> NoReturn:
     '''Plots the results of a single run of phlogenetic bias analysis''' 
-    
+
+    feature_type = results['feature_type'] # Extract the feature type from the results dictionary. 
     levels = ['Phylum', 'Class', 'Order', 'Family', 'Genus', 'Species'][::-1]
     fig, ax = plt.subplots(figsize=(5, 3))
 

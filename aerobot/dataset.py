@@ -135,7 +135,6 @@ def dataset_load_feature_order(feature_type:str, drop_x:bool=True) -> np.ndarray
         features = np.array([f for f in features if 'X' not in f])
     return features
 
-print(dataset_load_feature_order('aa_3mer'))
 
 def dataset_load_training_validation(feature_type:str, binary:bool=False, to_numpy:bool=True, drop_x:bool=True) -> Tuple[Dict]:
     '''Load training and validation datasets for the specified feature type.

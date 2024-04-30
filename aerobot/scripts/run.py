@@ -33,8 +33,8 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('model-class', choices=['nonlinear', 'logistic'], help='The type of model to train.')
     parser.add_argument('--feature-type', type=str, default='KO', choices=FEATURE_SUBTYPES + FEATURE_TYPES, help='The feature type on which to train.')
-    parser.add_argument('--out', '-o', default='run_model_results.pkl', help='The location to which the pickled results will be written.')
-    parser.add_argument('--output-format', default='pkl', choices=['pkl', 'json'], help='Format of the results file.')
+    parser.add_argument('--out', '-o', default='run_model_results.json', help='The location to which the pickled results will be written.')
+    parser.add_argument('--output-format', default='json', choices=['pkl', 'json'], help='Format of the results file.')
     parser.add_argument('--binary', default=0, type=bool, help='Whether to train on the binary classification task. If False, then ternary classification is performed.')
     # Optional parameters for Nonlinear classifiers. 
     parser.add_argument('--n-epochs', default=100, type=int, help='The maximum number of epochs to train the Nonlinear classifier.') 
