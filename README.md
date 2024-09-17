@@ -1,3 +1,5 @@
+# Deprecated codebase: please use https://github.com/flamholz/annotation_free_dioxygen_utilization instead
+
 # AEROBOT
 Python classifier for predicting oxygen usage from bacterial and archaeal genomes.
 
